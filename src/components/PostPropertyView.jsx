@@ -50,7 +50,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
         if (geminiRes.park?.distance) setParkDistance(geminiRes.park.distance);
         if (geminiRes.market?.name) setMarketName(geminiRes.market.name);
         if (geminiRes.market?.distance) setMarketDistance(geminiRes.market.distance);
-        setDetectSuccessMsg("✓ Verified via Gemini 2.5 Flash AI Radar");
+        setDetectSuccessMsg("✓ Nearby landmarks auto-filled successfully");
         return;
       }
 
@@ -63,7 +63,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
         setParkDistance("210m");
         setMarketName(`${locality} Market Corridor`);
         setMarketDistance("280m");
-        setDetectSuccessMsg("✓ Verified via OpenStreetMap Live Topography");
+        setDetectSuccessMsg("✓ Nearby landmarks auto-filled successfully");
         return;
       }
 
@@ -75,7 +75,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
       setParkDistance(defaults[1].distance);
       setMarketName(defaults[2].label);
       setMarketDistance(defaults[2].distance);
-      setDetectSuccessMsg("✓ Calibrated with Topographical District Baseline");
+      setDetectSuccessMsg("✓ Nearby landmarks calibrated to district baseline");
     } catch (e) {
       console.warn("Landmark detection exception:", e);
     } finally {
@@ -499,7 +499,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                     <span className="material-symbols-outlined text-[13px]">
                       {isDetectingLandmarks ? "sync" : "bolt"}
                     </span>
-                    <span>{isDetectingLandmarks ? "Detecting..." : "⚡ Auto-Detect (OSM/AI)"}</span>
+                    <span>{isDetectingLandmarks ? "Detecting..." : "⚡ Auto-Fill Nearby"}</span>
                   </button>
                 </div>
 
