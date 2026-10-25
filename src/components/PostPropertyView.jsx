@@ -6,6 +6,7 @@ import {
   analyzeLandmarksWithGemini, 
   DISTRICT_TOPOGRAPHICAL_DEFAULTS 
 } from "../services/landmarkRadarService";
+import { compressImageFile, detectRoomTypeWithAI } from "../services/imageAnalyzerService";
 
 export default function PostPropertyView({ onBack, onAddProperty }) {
   const { currentUser } = useAuth();
@@ -84,8 +85,68 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
     }
   };
 
-  // Step 3 State
-  const [imageUrl, setImageUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCV-_a25YQvnTI8Tv1GvQj6_8bcaTVs10sFXtJMtbaJJC0eGW4Dfvix2xtse6Kgpi2j96cgyY6XxbwopzEdu3SNbwAYs9I8kRDIAiS0OS-kHQYZpd5AWLuVrZEw6HggnTUSJ_hprFqd4orACpFRNlNpIWevtxMVwszm9YvMD_phbDx9JDVEGr16N_Evw4oWSGKG-YNSmi7nwDk4zhyOB9WkJRtUbMBX54P_3F9l-w");
+  // Step 3 State (Real Upload & AI Room Detection)
+  const [imagesList, setImagesList] = useState([
+    {
+      url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+      tag: "Living Room",
+      isCover: true
+    }
+  ]);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [customUrlInput, setCustomUrlInput] = useState("");
+
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsProcessingImage(true);
+    setImageUploadError("");
+
+    try {
+      const newItems = [];
+      for (const file of files.slice(0, 5 - imagesList.length)) {
+        const compressedDataUrl = await compressImageFile(file);
+        let detectedTag = "Property View";
+        try {
+          const aiTag = await detectRoomTypeWithAI(compressedDataUrl);
+          if (aiTag) detectedTag = aiTag;
+        } catch {
+          // ignore
+        }
+        newItems.push({
+          url: compressedDataUrl,
+          tag: detectedTag,
+          isCover: imagesList.length === 0 && newItems.length === 0
+        });
+      }
+      setImagesList(prev => [...prev, ...newItems]);
+    } catch (err) {
+      setImageUploadError("Error processing image file: " + err.message);
+    } finally {
+      setIsProcessingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setImagesList(prev => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      if (updated.length > 0 && !updated.some(img => img.isCover)) {
+        updated[0].isCover = true;
+      }
+      return updated;
+    });
+  };
+
+  const handleSetCoverImage = (coverIndex) => {
+    setImagesList(prev => prev.map((img, idx) => ({
+      ...img,
+      isCover: idx === coverIndex
+    })));
+  };
   const [sellerName, setSellerName] = useState(currentUser?.displayName || "Vikramaditya Rao");
   const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "+91 98800 12345");
   const [callingHours, setCallingHours] = useState("9:00 AM – 8:30 PM");
@@ -121,7 +182,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
       locality,
       pincode,
       description: "Direct owner listing with zero brokerage. Inspected and registered clear freehold deed. Genuine buyers welcome for weekend site inspection.",
-      images: [imageUrl],
+      images: imagesList.length > 0 ? imagesList.map(img => img.url) : ["https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"],
       sellerName,
       sellerPhone,
       sellerType: "Verified Direct Owner",
@@ -602,15 +663,146 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                 <span className="font-code-spec text-[10px] text-secondary font-semibold">1-Tap Call Shield</span>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Property Image URL</label>
+              {/* Property Photos: Real File Upload & AI Room Detection */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-label-md text-label-md text-primary font-bold uppercase tracking-wide">
+                    Property Photos ({imagesList.length}/5)
+                  </label>
+                  <span className="font-code-spec text-[10px] text-secondary">
+                    {isProcessingImage ? "Analyzing & Compressing..." : "Camera & Gallery Ready"}
+                  </span>
+                </div>
+
                 <input 
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  id="property-photo-upload" 
+                  className="hidden" 
+                  onChange={handleFileUpload}
+                  disabled={imagesList.length >= 5 || isProcessingImage}
                 />
+
+                {/* Upload Action Card */}
+                <label 
+                  htmlFor="property-photo-upload"
+                  className={`border-2 border-dashed border-secondary/40 hover:border-secondary bg-surface-container-low hover:bg-surface-container p-4 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition active:scale-[0.99] ${
+                    imagesList.length >= 5 ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  <div className="w-11 h-11 rounded-full bg-secondary-container text-secondary flex items-center justify-center mb-2 shadow-xs">
+                    <span className="material-symbols-outlined text-[24px]">
+                      {isProcessingImage ? "sync" : "add_a_photo"}
+                    </span>
+                  </div>
+                  <span className="font-label-lg text-label-lg font-bold text-primary">
+                    {isProcessingImage ? "Optimizing & Detecting Room Types..." : "Upload Photos from Phone / Gallery"}
+                  </span>
+                  <span className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
+                    Select up to 5 photos • Automatic AI Room Detection & Compression
+                  </span>
+                </label>
+
+                {imageUploadError && (
+                  <div className="text-[11px] font-code-spec text-error bg-error-container/20 p-2 rounded-lg">
+                    {imageUploadError}
+                  </div>
+                )}
+
+                {/* Uploaded Photos Grid */}
+                {imagesList.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                    {imagesList.map((img, idx) => (
+                      <div 
+                        key={idx}
+                        className={`relative rounded-xl overflow-hidden border-2 bg-surface-dim group ${
+                          img.isCover ? "border-primary shadow-sm" : "border-surface-container"
+                        }`}
+                      >
+                        <img 
+                          src={img.url} 
+                          alt={`Photo ${idx + 1}`} 
+                          className="w-full h-28 object-cover"
+                        />
+                        
+                        {/* Detected Room Badge */}
+                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white font-code-spec text-[10px] font-medium flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[11px] text-secondary">check</span>
+                          <span>{img.tag}</span>
+                        </span>
+
+                        {/* Cover Photo Badge */}
+                        {img.isCover && (
+                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-primary text-on-primary font-code-spec text-[9px] font-bold uppercase tracking-wider">
+                            Cover
+                          </span>
+                        )}
+
+                        {/* Delete / Set Cover Actions */}
+                        <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+                          {!img.isCover && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetCoverImage(idx)}
+                              title="Set as Cover"
+                              className="w-6 h-6 rounded-full bg-black/60 hover:bg-primary text-white flex items-center justify-center text-[10px] transition"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">star</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            title="Remove Photo"
+                            className="w-6 h-6 rounded-full bg-black/60 hover:bg-error text-white flex items-center justify-center text-[10px] transition"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">close</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Optional Web URL Toggle */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(!showUrlInput)}
+                    className="text-[11px] font-code-spec text-secondary hover:underline flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">link</span>
+                    <span>{showUrlInput ? "Hide Web URL input" : "Or add photo via Web URL"}</span>
+                  </button>
+
+                  {showUrlInput && (
+                    <div className="flex gap-2 mt-2">
+                      <input
+                        type="text"
+                        value={customUrlInput}
+                        onChange={(e) => setCustomUrlInput(e.target.value)}
+                        placeholder="https://images.unsplash.com/..."
+                        className="flex-1 bg-surface-container-low text-primary text-[12px] p-2.5 rounded-lg focus:outline-none border border-surface-container"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (customUrlInput.trim()) {
+                            setImagesList(prev => [
+                              ...prev,
+                              { url: customUrlInput.trim(), tag: "Property View", isCover: prev.length === 0 }
+                            ]);
+                            setCustomUrlInput("");
+                          }
+                        }}
+                        className="px-3 py-2 bg-primary-container text-secondary-container font-label-md text-[11px] font-bold rounded-lg"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-space-xs">

@@ -28,37 +28,44 @@ function getPrivateApiKeys() {
 }
 
 /**
- * Single Private API Invocation Helper
+ * Single Private API Invocation Helper with Model Fallback
  */
 async function callGeminiEndpoint(apiKey, prompt) {
   if (!apiKey) return null;
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: "application/json"
-        }
-      })
-    });
+  const models = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest"];
+  
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: "application/json"
+          }
+        })
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (rawText) {
-        return JSON.parse(rawText);
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          return JSON.parse(rawText);
+        }
+      } else if (response.status === 404) {
+        // Try next compatible model
+        continue;
+      } else {
+        console.warn(`[Internal Service] Key response status ${response.status}`);
+        return null;
       }
-    } else {
-      console.warn(`[Internal Service] Key response status ${response.status}`);
+    } catch (e) {
+      console.warn("[Internal Service] Execution warning:", e.message);
       return null;
     }
-  } catch (e) {
-    console.warn("[Internal Service] Execution warning:", e.message);
-    return null;
   }
   return null;
 }
