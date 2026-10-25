@@ -19,7 +19,10 @@ export const getCachedProperties = () => {
   try {
     const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (cached) {
-      return JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].landmarks) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.error("Local storage read error", e);
