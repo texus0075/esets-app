@@ -17,17 +17,17 @@ export default function BottomNav({ activeTab, onTabChange }) {
           <span className="font-label-md text-label-md mt-0.5">Explore</span>
         </button>
 
-        {/* Tab 2: Districts */}
+        {/* Tab 2: My Listings (Seller Portfolio) */}
         <button
-          onClick={() => onTabChange("districts")}
+          onClick={() => onTabChange("my-listings")}
           className={`flex-1 flex flex-col items-center justify-center h-full min-w-[56px] transition-colors ${
-            activeTab === "districts"
-              ? "text-primary-container font-semibold"
+            activeTab === "my-listings"
+              ? "text-secondary font-bold"
               : "text-on-surface-variant hover:text-on-surface"
           }`}
         >
-          <span className="material-symbols-outlined text-[22px]">near_me</span>
-          <span className="font-label-md text-label-md mt-0.5">Districts</span>
+          <span className="material-symbols-outlined text-[22px]">real_estate_agent</span>
+          <span className="font-label-md text-[11px] mt-0.5">My Listings</span>
         </button>
 
         {/* Tab 3: Post Free (Center elevated Amber CTA) */}

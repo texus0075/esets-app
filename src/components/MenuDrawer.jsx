@@ -12,7 +12,8 @@ export default function MenuDrawer({
   onThemeChange,
   isGlobalCallShieldActive,
   onToggleGlobalCallShield,
-  onOpenChecklistModal
+  onOpenChecklistModal,
+  myPropertyCount = 1
 }) {
   if (!isOpen) return null;
 
@@ -99,6 +100,23 @@ export default function MenuDrawer({
           <span className="font-code-spec text-[10px] uppercase tracking-wider text-on-surface-variant font-bold block mb-1">
             Quick Actions
           </span>
+
+          {/* My Published Listings */}
+          <button
+            onClick={() => {
+              onNavigateTab("my-listings");
+              onClose();
+            }}
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-[18px] text-secondary">real_estate_agent</span>
+              <span>My Published Listings</span>
+            </div>
+            <span className="font-code-spec text-[10px] px-2 py-0.5 rounded-full bg-primary-container text-secondary-container font-bold">
+              {myPropertyCount}
+            </span>
+          </button>
 
           {/* Post Property */}
           <button

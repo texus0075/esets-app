@@ -105,6 +105,20 @@ export default function SettingsView({
         </div>
       </div>
 
+      {/* Official Government & Deed Verification Notice (Immutable Identity) */}
+      <div className="p-3 rounded-xl bg-surface-container border border-surface-container flex items-center justify-between text-[11.5px]">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-secondary">lock</span>
+          <div>
+            <strong className="text-primary font-semibold block">Aadhaar & Registry Deed Verified Identity</strong>
+            <span className="text-on-surface-variant text-[10.5px]">Immutable security lock: Name and contact cannot be altered to prevent fraud</span>
+          </div>
+        </div>
+        <span className="font-code-spec text-[10px] text-secondary bg-surface-container-lowest px-2 py-0.5 rounded font-bold uppercase shrink-0">
+          LOCKED 🔒
+        </span>
+      </div>
+
       {/* Clean Category Navigation Pills */}
       <div className="flex items-center gap-2 overflow-x-auto py-3 no-scrollbar">
         {[

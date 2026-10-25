@@ -21,10 +21,13 @@ export default function ExploreView({
   onBhkFilterChange,
   onResetFilters,
 
-  // Hardware GPS
+  // Hardware GPS & Location Management
   gpsData,
   isLocatingGps,
   onDetectGPS,
+  savedLocations,
+  onOpenLocationModal,
+  onSaveLocation,
 
   // Modals & Navigation
   onPostProperty,
@@ -55,6 +58,9 @@ export default function ExploreView({
         <ExploreFilterBar
           selectedDistrict={selectedDistrict}
           onSelectDistrict={onSelectDistrict}
+          savedLocations={savedLocations}
+          onOpenLocationModal={onOpenLocationModal}
+          onSaveLocation={onSaveLocation}
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
           dealIntent={dealIntent}

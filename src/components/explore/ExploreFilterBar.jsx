@@ -1,9 +1,11 @@
 import React from "react";
-import { DISTRICTS } from "../../data/mockData";
 
 export default function ExploreFilterBar({
   selectedDistrict,
   onSelectDistrict,
+  savedLocations = [],
+  onOpenLocationModal,
+  onSaveLocation,
   searchQuery,
   onSearchChange,
   dealIntent,
@@ -15,18 +17,6 @@ export default function ExploreFilterBar({
   onDetectGPS,
   matchingCount
 }) {
-  // Build dynamic list of location chips including the user's real detected GPS location
-  const locationList = React.useMemo(() => {
-    const list = [...DISTRICTS];
-    if (gpsData && gpsData.district) {
-      // If the detected district is not already in the list, insert it right after "All Locations"
-      if (!list.includes(gpsData.district)) {
-        list.splice(1, 0, gpsData.district);
-      }
-    }
-    return list;
-  }, [gpsData]);
-
   return (
     <section className="px-margin-mobile pt-1 pb-2 flex flex-col gap-2.5">
       {/* 1. Real-Time Hardware GPS & Location Chips Row */}
@@ -52,34 +42,62 @@ export default function ExploreFilterBar({
 
         {/* User's Exact Detected City/District Box (Appears dynamically upon GPS lock) */}
         {gpsData && gpsData.district && (
-          <button
-            onClick={() => onSelectDistrict(gpsData.district)}
-            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-label-md text-label-md transition flex items-center gap-1.5 ${
-              selectedDistrict === gpsData.district
-                ? "bg-secondary text-surface font-bold shadow-md ring-2 ring-secondary/30"
-                : "bg-surface-container-high text-primary font-semibold hover:bg-surface-dim"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[15px] text-tertiary-fixed-dim">
-              location_on
-            </span>
-            <span>📍 {gpsData.district}</span>
-            {selectedDistrict === gpsData.district && (
-              <span className="material-symbols-outlined text-[14px]">check</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onSelectDistrict(gpsData.district)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-label-md text-label-md transition flex items-center gap-1.5 ${
+                selectedDistrict === gpsData.district
+                  ? "bg-secondary text-surface font-bold shadow-md ring-2 ring-secondary/30"
+                  : "bg-surface-container-high text-primary font-semibold hover:bg-surface-dim"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px] text-tertiary-fixed-dim">
+                location_on
+              </span>
+              <span>📍 {gpsData.district}</span>
+              {selectedDistrict === gpsData.district && (
+                <span className="material-symbols-outlined text-[14px]">check</span>
+              )}
+            </button>
+
+            {/* Quick 1-tap Save Button if not already saved */}
+            {!savedLocations.includes(gpsData.district) && (
+              <button
+                onClick={() => {
+                  onSaveLocation(gpsData.district);
+                  alert(`⭐ Saved "${gpsData.district}" to your permanent territories list!`);
+                }}
+                title="Save as permanent territory"
+                className="px-2 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-dim text-secondary text-[11px] font-bold"
+              >
+                ⭐ Save
+              </button>
             )}
-          </button>
+          </div>
         )}
 
-        {/* Standard Districts Chips */}
-        {locationList.map(dist => {
-          // If this is the detected district, we already rendered the special GPS chip above
+        {/* All Locations Chip */}
+        <button
+          onClick={() => onSelectDistrict("")}
+          className={`flex-shrink-0 px-3 py-1.5 rounded-full font-label-md text-label-md transition flex items-center gap-1 ${
+            !selectedDistrict
+              ? "bg-primary-container text-secondary-container font-bold shadow-xs"
+              : "bg-surface-container text-on-surface hover:bg-surface-container-high font-medium"
+          }`}
+        >
+          <span>All Locations</span>
+        </button>
+
+        {/* Saved/Custom Territories Chips */}
+        {savedLocations.map(dist => {
+          // If already rendered via active GPS lock, avoid duplicate
           if (gpsData && gpsData.district === dist) return null;
 
-          const isSelected = selectedDistrict === dist || (dist === "All Districts" && !selectedDistrict);
+          const isSelected = selectedDistrict === dist;
           return (
             <button
               key={dist}
-              onClick={() => onSelectDistrict(dist === "All Districts" ? "" : dist)}
+              onClick={() => onSelectDistrict(dist)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full font-label-md text-label-md transition flex items-center gap-1 ${
                 isSelected
                   ? "bg-primary-container text-secondary-container font-bold shadow-xs"
@@ -90,6 +108,15 @@ export default function ExploreFilterBar({
             </button>
           );
         })}
+
+        {/* Manage & Add Locations Chip */}
+        <button
+          onClick={onOpenLocationModal}
+          className="flex-shrink-0 px-3 py-1.5 rounded-full font-label-md text-label-md text-secondary border border-secondary/30 hover:bg-surface-container transition flex items-center gap-1 font-semibold"
+        >
+          <span className="material-symbols-outlined text-[15px]">edit_location</span>
+          <span>+ Add / Manage</span>
+        </button>
       </div>
 
       {/* 2. Real-Time Search Bar with Instant Result Feedback */}

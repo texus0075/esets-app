@@ -10,7 +10,7 @@ import BottomNav from "./components/BottomNav";
 
 // Isolated Tab View Components
 import ExploreView from "./components/views/ExploreView";
-import DistrictsView from "./components/views/DistrictsView";
+import MyListingsView from "./components/views/MyListingsView";
 import PostPropertyView from "./components/PostPropertyView";
 import SavedPropertiesView from "./components/views/SavedPropertiesView";
 import SettingsView from "./components/SettingsView";
@@ -21,7 +21,7 @@ import LocationModal from "./components/LocationModal";
 import LegalChecklistModal from "./components/LegalChecklistModal";
 
 // Initial Listing Data
-import { INITIAL_PROPERTIES } from "./data/mockData";
+import { INITIAL_PROPERTIES, DISTRICTS } from "./data/mockData";
 
 export default function App() {
   // Navigation & Menu State
@@ -38,14 +38,38 @@ export default function App() {
     return localStorage.getItem("esets_call_shield") === "true";
   });
 
-  // Persistent Saved Property IDs
+  // Persistent Saved Property IDs (Bookmarks)
   const [savedIds, setSavedIds] = useState(() => {
     try {
       const stored = localStorage.getItem("esets_saved_ids");
+      return stored ? JSON.parse(stored) : ["prop-delhi-gk1", "prop-ggn-golfcourse"];
+    } catch {
+      return ["prop-delhi-gk1", "prop-ggn-golfcourse"];
+    }
+  });
+
+  // Persistent User's Owned Property IDs
+  const [myPropertyIds, setMyPropertyIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem("esets_my_property_ids");
       return stored ? JSON.parse(stored) : ["prop-delhi-gk1"];
     } catch {
       return ["prop-delhi-gk1"];
     }
+  });
+
+  // Persistent Custom Saved Territories (Locations that user adds or saves from GPS)
+  const [savedLocations, setSavedLocations] = useState(() => {
+    try {
+      const stored = localStorage.getItem("esets_saved_locations");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn("Locations parse error:", e);
+    }
+    return DISTRICTS.filter(d => d !== "All Districts");
   });
 
   // Persistent Properties State
@@ -89,7 +113,7 @@ export default function App() {
     localStorage.setItem("esets_theme", theme);
   }, [theme]);
 
-  // Persist Call Shield, Saved IDs & Custom Properties
+  // Persist Call Shield, Saved IDs, My Properties & Saved Locations
   useEffect(() => {
     localStorage.setItem("esets_call_shield", isGlobalCallShieldActive);
   }, [isGlobalCallShieldActive]);
@@ -99,15 +123,40 @@ export default function App() {
   }, [savedIds]);
 
   useEffect(() => {
+    localStorage.setItem("esets_my_property_ids", JSON.stringify(myPropertyIds));
+  }, [myPropertyIds]);
+
+  useEffect(() => {
+    localStorage.setItem("esets_saved_locations", JSON.stringify(savedLocations));
+  }, [savedLocations]);
+
+  useEffect(() => {
     localStorage.setItem("esets_custom_properties", JSON.stringify(properties));
   }, [properties]);
 
-  // Trigger Hardware GPS with Instant Reverse Geocoding & Dynamic Location Selection
+  // Location Management Handlers
+  const handleSaveLocation = (newLoc) => {
+    if (!newLoc) return;
+    setSavedLocations(prev => {
+      if (prev.includes(newLoc)) return prev;
+      return [newLoc, ...prev];
+    });
+  };
+
+  const handleRemoveLocation = (locToRemove) => {
+    setSavedLocations(prev => prev.filter(l => l !== locToRemove));
+    if (selectedDistrict === locToRemove) {
+      setSelectedDistrict("");
+    }
+  };
+
+  // Trigger Hardware GPS with Instant Reverse Geocoding & Automatic Selection
   const handleDetectGPS = () => {
     detectLocation((resolved) => {
       if (resolved && resolved.district) {
         setSelectedDistrict(resolved.district);
-        alert(`📍 Real GPS Locked:\n${resolved.fullName}\n\nLocation set to "${resolved.district}". Listings prioritized.`);
+        handleSaveLocation(resolved.district);
+        alert(`📍 Real GPS Locked:\n${resolved.fullName}\n\n"${resolved.district}" saved & prioritized in your territories!`);
       }
     });
   };
@@ -125,6 +174,15 @@ export default function App() {
     }
   };
 
+  const handleDeleteProperty = (propertyId) => {
+    setProperties(prev => prev.filter(p => p.id !== propertyId));
+    setMyPropertyIds(prev => prev.filter(id => id !== propertyId));
+    setSavedIds(prev => prev.filter(id => id !== propertyId));
+    if (selectedProperty && selectedProperty.id === propertyId) {
+      setSelectedProperty(null);
+    }
+  };
+
   const handleToggleGlobalCallShield = () => {
     setIsGlobalCallShieldActive(prev => !prev);
   };
@@ -134,11 +192,14 @@ export default function App() {
       ...newProperty,
       id: `prop-${Date.now()}`,
       postedAt: "Listed Just now",
-      views: 1
+      views: 1,
+      sellerName: "Vikramaditya Rao",
+      verifiedOwner: true
     };
     setProperties(prev => [created, ...prev]);
+    setMyPropertyIds(prev => [created.id, ...prev]);
     alert("🎉 Your property has been published live with 0% brokerage!");
-    setActiveTab("explore");
+    setActiveTab("my-listings");
   };
 
   const handleResetFilters = () => {
@@ -149,7 +210,7 @@ export default function App() {
     setSearchQuery("");
   };
 
-  // High-Precision Real-Time Filtering
+  // High-Precision Real-Time Filtering for Explore Feed
   const filteredProperties = useMemo(() => {
     return properties.filter(item => {
       // 1. Category Filter
@@ -214,11 +275,15 @@ export default function App() {
     return properties.filter(p => savedIds.includes(p.id));
   }, [properties, savedIds]);
 
+  const myProperties = useMemo(() => {
+    return properties.filter(p => myPropertyIds.includes(p.id));
+  }, [properties, myPropertyIds]);
+
   // Determine current active location label for Navbar
   const currentLocationLabel = useMemo(() => {
     if (selectedDistrict) return selectedDistrict;
     if (gpsData && gpsData.district) return gpsData.district;
-    return "South Delhi";
+    return "All Locations";
   }, [selectedDistrict, gpsData]);
 
   return (
@@ -244,6 +309,7 @@ export default function App() {
         isGlobalCallShieldActive={isGlobalCallShieldActive}
         onToggleGlobalCallShield={handleToggleGlobalCallShield}
         onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
+        myPropertyCount={myProperties.length}
       />
 
       {/* 3. Modular Tab Views Routing */}
@@ -254,6 +320,9 @@ export default function App() {
           onSelectCategory={setActiveCategory}
           selectedDistrict={selectedDistrict}
           onSelectDistrict={setSelectedDistrict}
+          savedLocations={savedLocations}
+          onOpenLocationModal={() => setIsLocationModalOpen(true)}
+          onSaveLocation={handleSaveLocation}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           dealIntent={dealIntent}
@@ -271,11 +340,14 @@ export default function App() {
         />
       )}
 
-      {activeTab === "districts" && (
-        <DistrictsView
-          selectedDistrict={selectedDistrict}
-          onSelectDistrict={setSelectedDistrict}
-          onNavigateToExplore={() => setActiveTab("explore")}
+      {activeTab === "my-listings" && (
+        <MyListingsView
+          myProperties={myProperties}
+          onSelectProperty={setSelectedProperty}
+          onToggleSold={handleToggleSold}
+          onDeleteProperty={handleDeleteProperty}
+          onNavigateToPost={() => setActiveTab("post-free")}
+          isGlobalCallShieldActive={isGlobalCallShieldActive}
         />
       )}
 
@@ -320,13 +392,21 @@ export default function App() {
         />
       )}
 
+      {/* Location & Territory Manager Modal */}
       <LocationModal
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
         selectedDistrict={selectedDistrict}
         onSelectDistrict={setSelectedDistrict}
+        savedLocations={savedLocations}
+        onSaveLocation={handleSaveLocation}
+        onRemoveLocation={handleRemoveLocation}
+        onDetectGPS={handleDetectGPS}
+        isLocatingGps={isLocatingGps}
+        gpsData={gpsData}
       />
 
+      {/* Legal 7-Step Checklist Modal */}
       <LegalChecklistModal
         isOpen={isChecklistModalOpen}
         onClose={() => setIsChecklistModalOpen(false)}
