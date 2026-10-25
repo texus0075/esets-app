@@ -1,8 +1,83 @@
 @import "tailwindcss";
 
+@theme {
+  --color-earth-bg: #f8f7f4;
+  --color-earth-dark: #1b2416;
+  --color-earth-surface: #ffffff;
+  --color-earth-muted: #e8e3dc;
+  
+  /* Concept 3: 60% Dominant Sage Green Foundation */
+  --color-sage: #87a168;
+  --color-sage-dark: #526b3c;
+  --color-sage-light: #f1f5ee;
+  
+  /* Concept 3: 30% Structural Walnut Brown */
+  --color-walnut: #563e28;
+  --color-walnut-dark: #3a2818;
+  --color-walnut-light: #eaddd0;
+
+  /* Concept 3: 10% High-Conversion Amber Glow Accent */
+  --color-amber-glow: #d5810f;
+  --color-amber-dark: #b26805;
+  --color-amber-light: #fef6ec;
+}
+
 @layer base {
+  :root {
+    /* Mobile-First Fluid Typography Standard */
+    --h1-clamp: clamp(1.45rem, 5vw, 1.85rem);
+    --h2-clamp: clamp(1.2rem, 4vw, 1.45rem);
+    --body-clamp: 0.88rem;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white min-h-screen;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--color-earth-bg);
+    color: #1c1917;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Strict CSS Grid & Flexbox Containment */
+  * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
   }
 }
+
+/* Custom Utilities for Video Concept 3 */
+.earth-gradient-hero {
+  background: radial-gradient(circle at 80% 20%, rgba(135, 161, 104, 0.22) 0%, rgba(27, 36, 22, 0.98) 75%), #1b2416;
+}
+
+.amber-glow-btn {
+  background: #d5810f;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(213, 129, 15, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.amber-glow-btn:hover {
+  background: #b26805;
+  box-shadow: 0 6px 20px rgba(213, 129, 15, 0.45);
+  transform: translateY(-1px);
+}
+
+.amber-glow-btn:active {
+  transform: scale(0.98);
+}
+
+.walnut-card {
+  background: #ffffff;
+  border: 1px solid rgba(86, 62, 40, 0.12);
+  transition: all 0.25s ease;
+}
+
+.walnut-card:hover {
+  border-color: rgba(135, 161, 104, 0.6);
+  box-shadow: 0 12px 30px rgba(27, 36, 22, 0.08);
+}
+
