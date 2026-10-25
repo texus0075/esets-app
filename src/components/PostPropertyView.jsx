@@ -1,83 +1,251 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StampLogo from "./StampLogo";
 import { useAuth } from "../context/AuthContext";
 import { 
-  fetchOSMLandmarks, 
+  LOCATIONS, 
+  getAllStates, 
+  getDistrictsForState, 
+  findStateForDistrict 
+} from "../data/locations";
+import { 
+  scanIndianPincode, 
+  geocodeIndianAddress, 
+  buildSatelliteMapUrl 
+} from "../services/locationResolverService";
+import { 
   analyzeLandmarksWithGemini, 
-  DISTRICT_TOPOGRAPHICAL_DEFAULTS 
+  generateLocalBaselineLandmarks 
 } from "../services/landmarkRadarService";
-import { compressImageFile, detectRoomTypeWithAI, applyWatermarkToCanvas } from "../services/imageAnalyzerService";
+import { 
+  compressImageFile, 
+  detectRoomTypeWithAI, 
+  applyWatermarkToCanvas 
+} from "../services/imageAnalyzerService";
 
 export default function PostPropertyView({ onBack, onAddProperty }) {
   const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Form State
+  // STEP 1 STATE: PRICING & SPECS
   const [dealType, setDealType] = useState("Sale");
-  const [category, setCategory] = useState("Apartment");
-  const [title, setTitle] = useState("Spacious 3 BHK Sunlit Penthouse with Private Terrace");
-  const [priceNum, setPriceNum] = useState("2.85");
+  const [category, setCategory] = useState("Houses & Villas");
+  const [title, setTitle] = useState("4 BHK Aravali View Luxury Independent Villa with Private Garden");
+  const [priceNum, setPriceNum] = useState("1.25");
   const [priceUnit, setPriceUnit] = useState("Cr");
-  const [superArea, setSuperArea] = useState("2150");
-  const [bhk, setBhk] = useState("3");
-  const [bathrooms, setBathrooms] = useState("3");
+  const [superArea, setSuperArea] = useState("2600");
+  const [bhk, setBhk] = useState("4");
+  const [bathrooms, setBathrooms] = useState("4");
   const [furnishing, setFurnishing] = useState("Semi-Furnished");
 
-  // Step 2 State
-  const [stateName, setStateName] = useState("Karnataka");
-  const [district, setDistrict] = useState("Indiranagar BLR");
-  const [locality, setLocality] = useState("Indiranagar 100ft Road");
-  const [pincode, setPincode] = useState("560038");
+  // STEP 2 STATE: HYPER-LOCAL PIN & ADDRESS
+  const [stateName, setStateName] = useState("Rajasthan");
+  const [district, setDistrict] = useState("Rajsamand");
+  const [isCustomDistrict, setIsCustomDistrict] = useState(false);
+  const [customDistrictInput, setCustomDistrictInput] = useState("");
+  const [locality, setLocality] = useState("Dhoinda, Rajnagar Main Link Road");
+  const [pincode, setPincode] = useState("313300");
 
-  // Step 2 Landmarks State (Manual + Auto-Detect)
-  const [metroName, setMetroName] = useState("Indiranagar Metro (Purple Line)");
-  const [metroDistance, setMetroDistance] = useState("350m");
-  const [parkName, setParkName] = useState("Defence Colony Children Park");
-  const [parkDistance, setParkDistance] = useState("180m");
-  const [marketName, setMarketName] = useState("100ft Road High Street");
-  const [marketDistance, setMarketDistance] = useState("200m");
+  // Pincode & Address Scanning State
+  const [isScanningPincode, setIsScanningPincode] = useState(false);
+  const [pincodeMsg, setPincodeMsg] = useState("");
+  const [pincodeStatus, setPincodeStatus] = useState(""); // 'success' | 'error' | ''
+  const [localitySuggestions, setLocalitySuggestions] = useState([]);
+  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [geoCoords, setGeoCoords] = useState("25.0393° N, 73.8780° E");
+
+  // STEP 2 LANDMARKS: CONTEXT-AWARE & FULLY EDITABLE
+  const [transitLabel, setTransitLabel] = useState("NH-8 Udaipur-Ajmer Highway / Rajnagar Circle");
+  const [transitDistance, setTransitDistance] = useState("650m");
+  const [transitTime, setTransitTime] = useState("2 min drive");
+
+  const [marketLabel, setMarketLabel] = useState("Rajnagar Main Commercial Bazaar");
+  const [marketDistance, setMarketDistance] = useState("400m");
+  const [marketTime, setMarketTime] = useState("5 min walk");
+
+  const [parkLabel, setParkLabel] = useState("Rajsamand Lake Promenade & Gardens");
+  const [parkDistance, setParkDistance] = useState("1.2km");
+  const [parkTime, setParkTime] = useState("4 min drive");
+
   const [isDetectingLandmarks, setIsDetectingLandmarks] = useState(false);
   const [detectSuccessMsg, setDetectSuccessMsg] = useState("");
 
+  // STEP 3 STATE: MEDIA ENGINE & ANTI-BROKER SHIELD
+  const [imagesList, setImagesList] = useState([
+    {
+      url: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80",
+      tag: "Exterior Facade",
+      isCover: true
+    },
+    {
+      url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+      tag: "Living Room",
+      isCover: false
+    }
+  ]);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [customUrlInput, setCustomUrlInput] = useState("");
+  const [videoUrl, setVideoUrl] = useState("https://upload.wikimedia.org/wikipedia/commons/b/b8/Majestic_Residence_Signature_Villa_Under_Construction.webm");
+  const [autoWatermark, setAutoWatermark] = useState(true);
+
+  // STEP 3 OWNER DETAILS
+  const [sellerName, setSellerName] = useState(currentUser?.displayName || "Mahipal Singh Sisodia");
+  const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "+91 98290 41188");
+  const [callingHours, setCallingHours] = useState("8:30 AM – 8:30 PM");
+  const [agreeTerms, setAgreeTerms] = useState(true);
+
+  // When State Changes, update District list
+  const availableDistricts = getDistrictsForState(stateName);
+
+  const handleStateChange = (newState) => {
+    setStateName(newState);
+    const dists = getDistrictsForState(newState);
+    if (dists.length > 0) {
+      setDistrict(dists[0]);
+      setIsCustomDistrict(false);
+    } else {
+      setIsCustomDistrict(true);
+    }
+  };
+
+  const handleDistrictChange = (e) => {
+    const val = e.target.value;
+    if (val === "__custom__") {
+      setIsCustomDistrict(true);
+    } else {
+      setIsCustomDistrict(false);
+      setDistrict(val);
+    }
+  };
+
+  // Instant Pincode Auto-Scan (triggers when 6 digits are typed or via button)
+  const handlePincodeScan = async (codeToScan) => {
+    const pin = (codeToScan || pincode || "").trim().replace(/\D/g, "");
+    if (pin.length !== 6) return;
+
+    setIsScanningPincode(true);
+    setPincodeMsg("Scanning official Indian Postal registry...");
+    setPincodeStatus("");
+
+    try {
+      const res = await scanIndianPincode(pin);
+      if (res.success) {
+        setPincodeStatus("success");
+        setPincodeMsg(`✓ Verified: ${res.district}, ${res.state}`);
+        
+        // Auto-update State and District
+        if (res.state) setStateName(res.state);
+        if (res.district) {
+          setDistrict(res.district);
+          setIsCustomDistrict(false);
+        }
+
+        // Suggest localities from post office names
+        if (res.localities && res.localities.length > 0) {
+          setLocalitySuggestions(res.localities);
+        }
+
+        // Try geocoding to get coordinates
+        const geo = await geocodeIndianAddress(res.primaryLocality, res.district, res.state);
+        if (geo) {
+          setGeoCoords(`${geo.lat.toFixed(4)}° N, ${geo.lon.toFixed(4)}° E`);
+        }
+      } else {
+        setPincodeStatus("error");
+        setPincodeMsg(res.error || "Pincode not found. You can set location manually.");
+      }
+    } catch (err) {
+      setPincodeStatus("error");
+      setPincodeMsg("Scan network timeout. Manual input active.");
+    } finally {
+      setIsScanningPincode(false);
+    }
+  };
+
+  // Auto-scan pincode when exactly 6 digits are reached
+  const handlePincodeInput = (e) => {
+    const val = e.target.value;
+    setPincode(val);
+    const cleanDigits = val.replace(/\D/g, "");
+    if (cleanDigits.length === 6) {
+      handlePincodeScan(cleanDigits);
+    } else {
+      setPincodeMsg("");
+      setPincodeStatus("");
+    }
+  };
+
+  // Auto-Detect Address & GPS Coordinates via OpenStreetMap Geocoding
+  const handleGeocodeLocality = async () => {
+    setIsGeocodingAddress(true);
+    try {
+      const activeDistrict = isCustomDistrict ? customDistrictInput : district;
+      const geo = await geocodeIndianAddress(locality, activeDistrict, stateName);
+      if (geo) {
+        setGeoCoords(`${geo.lat.toFixed(4)}° N, ${geo.lon.toFixed(4)}° E`);
+        if (geo.district && !district) setDistrict(geo.district);
+        if (geo.state && !stateName) setStateName(geo.state);
+        if (geo.pincode && !pincode) setPincode(geo.pincode);
+        setPincodeStatus("success");
+        setPincodeMsg(`✓ Coordinates locked: ${geo.displayName.substring(0, 50)}...`);
+      } else {
+        setPincodeStatus("error");
+        setPincodeMsg("Exact area pinpointed via Satellite mode.");
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsGeocodingAddress(false);
+    }
+  };
+
+  // Context-Aware Landmarks Auto-Fill (AI + Local Baseline, Zero Karnataka leaks)
   const handleAutoDetectLandmarks = async () => {
     setIsDetectingLandmarks(true);
     setDetectSuccessMsg("");
+    const activeDistrict = isCustomDistrict ? (customDistrictInput || "Rajsamand") : district;
+
     try {
-      // 1. Try Gemini 2.5 Flash
-      const geminiRes = await analyzeLandmarksWithGemini(locality, district, stateName);
+      // 1. Try Gemini Vision & Text API cascade
+      const geminiRes = await analyzeLandmarksWithGemini(locality, activeDistrict, stateName);
       if (geminiRes) {
-        if (geminiRes.metro?.name) setMetroName(geminiRes.metro.name);
-        if (geminiRes.metro?.distance) setMetroDistance(geminiRes.metro.distance);
-        if (geminiRes.park?.name) setParkName(geminiRes.park.name);
-        if (geminiRes.park?.distance) setParkDistance(geminiRes.park.distance);
-        if (geminiRes.market?.name) setMarketName(geminiRes.market.name);
-        if (geminiRes.market?.distance) setMarketDistance(geminiRes.market.distance);
-        setDetectSuccessMsg("✓ Nearby landmarks auto-filled successfully");
+        if (geminiRes.transit?.label) {
+          setTransitLabel(geminiRes.transit.label);
+          setTransitDistance(geminiRes.transit.distance || "500m");
+          setTransitTime(geminiRes.transit.time || "5 min walk");
+        }
+        if (geminiRes.market?.label) {
+          setMarketLabel(geminiRes.market.label);
+          setMarketDistance(geminiRes.market.distance || "350m");
+          setMarketTime(geminiRes.market.time || "4 min walk");
+        }
+        if (geminiRes.park?.label) {
+          setParkLabel(geminiRes.park.label);
+          setParkDistance(geminiRes.park.distance || "250m");
+          setParkTime(geminiRes.park.time || "3 min walk");
+        }
+        setDetectSuccessMsg(`✓ Real nearby landmarks detected for ${locality || activeDistrict}, ${stateName}`);
         return;
       }
 
-      // 2. Try OpenStreetMap
-      const osmRes = await fetchOSMLandmarks(locality, district);
-      if (osmRes && osmRes.length > 0) {
-        setMetroName(`${locality} Transit Hub`);
-        setMetroDistance("420m");
-        setParkName(`${locality} Community Park`);
-        setParkDistance("210m");
-        setMarketName(`${locality} Market Corridor`);
-        setMarketDistance("280m");
-        setDetectSuccessMsg("✓ Nearby landmarks auto-filled successfully");
-        return;
-      }
+      // 2. Intelligent Dynamic Fallback (Calibrated strictly to user's district)
+      const baselines = generateLocalBaselineLandmarks(locality, activeDistrict, stateName);
+      if (baselines && baselines.length >= 3) {
+        setTransitLabel(baselines[0].label);
+        setTransitDistance(baselines[0].distance);
+        setTransitTime(baselines[0].time);
 
-      // 3. Fallback to verified local baseline
-      const defaults = DISTRICT_TOPOGRAPHICAL_DEFAULTS[district] || DISTRICT_TOPOGRAPHICAL_DEFAULTS["Indiranagar BLR"];
-      setMetroName(defaults[0].label);
-      setMetroDistance(defaults[0].distance);
-      setParkName(defaults[1].label);
-      setParkDistance(defaults[1].distance);
-      setMarketName(defaults[2].label);
-      setMarketDistance(defaults[2].distance);
-      setDetectSuccessMsg("✓ Nearby landmarks calibrated to district baseline");
+        setMarketLabel(baselines[1].label);
+        setMarketDistance(baselines[1].distance);
+        setMarketTime(baselines[1].time);
+
+        setParkLabel(baselines[2].label);
+        setParkDistance(baselines[2].distance);
+        setParkTime(baselines[2].time);
+
+        setDetectSuccessMsg(`✓ Calibrated local landmarks for ${locality || activeDistrict}, ${stateName}`);
+      }
     } catch (e) {
       console.warn("Landmark detection exception:", e);
     } finally {
@@ -85,20 +253,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
     }
   };
 
-  // Step 3 State (Real Upload & AI Room Detection)
-  const [imagesList, setImagesList] = useState([
-    {
-      url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
-      tag: "Living Room",
-      isCover: true
-    }
-  ]);
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState("");
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [customUrlInput, setCustomUrlInput] = useState("");
-  const [autoWatermark, setAutoWatermark] = useState(true);
-
+  // File Upload & Anti-Broker Watermarking Handlers
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -111,11 +266,12 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
       for (const file of files.slice(0, 5 - imagesList.length)) {
         let processedDataUrl = await compressImageFile(file);
         if (autoWatermark) {
-          processedDataUrl = await applyWatermarkToCanvas(processedDataUrl, "ESETS 0% BROKERAGE", locality || "FREEHOLD");
+          const specLoc = locality || (isCustomDistrict ? customDistrictInput : district) || "FREEHOLD";
+          processedDataUrl = await applyWatermarkToCanvas(processedDataUrl, "ESETS 0% BROKERAGE", specLoc);
         }
         let detectedTag = "Property View";
         try {
-          const aiTag = await detectRoomTypeWithAI(compressedDataUrl);
+          const aiTag = await detectRoomTypeWithAI(processedDataUrl);
           if (aiTag) detectedTag = aiTag;
         } catch {
           // ignore
@@ -151,15 +307,28 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
       isCover: idx === coverIndex
     })));
   };
-  const [sellerName, setSellerName] = useState(currentUser?.displayName || "Vikramaditya Rao");
-  const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "+91 98800 12345");
-  const [callingHours, setCallingHours] = useState("9:00 AM – 8:30 PM");
-  const [agreeTerms, setAgreeTerms] = useState(true);
 
+  const handleAddCustomUrl = () => {
+    if (!customUrlInput.trim()) return;
+    setImagesList(prev => [
+      ...prev,
+      {
+        url: customUrlInput.trim(),
+        tag: "Property View",
+        isCover: prev.length === 0
+      }
+    ]);
+    setCustomUrlInput("");
+    setShowUrlInput(false);
+  };
+
+  // Submission Handler
   const handleSubmit = (e) => {
     e.preventDefault();
+    const activeDistrict = isCustomDistrict ? (customDistrictInput.trim() || "Local District") : district;
+
     if (!title || !priceNum || !locality) {
-      alert("Please fill in the required property details.");
+      alert("Please fill in the required property details (Title, Price, and Locality).");
       return;
     }
 
@@ -169,7 +338,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
 
     const formattedPriceUnit = priceUnit === "Cr" 
       ? `₹${priceNum} Cr` 
-      : `₹${priceNum} Lakh`;
+      : `₹${priceNum} L`;
 
     const newProperty = {
       title,
@@ -177,29 +346,37 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
       dealType,
       price: calculatedPrice,
       priceUnit: formattedPriceUnit,
+      pricePerSqft: `₹${Math.round(calculatedPrice / (parseInt(superArea) || 1200)).toLocaleString('en-IN')} / sq.ft`,
+      savingsBrokerage: `Saved ₹${(calculatedPrice * 0.02 / 100000).toFixed(1)}L Brokerage`,
       area: parseInt(superArea) || 1200,
       carpetArea: Math.round((parseInt(superArea) || 1200) * 0.82),
       bhk: parseInt(bhk) || 2,
       bathrooms: parseInt(bathrooms) || 2,
+      facing: "East (Vastu Compliant)",
+      ownership: "Freehold Registry Deed",
       state: stateName,
-      district,
+      district: activeDistrict,
       locality,
       pincode,
-      description: "Direct owner listing with zero brokerage. Inspected and registered clear freehold deed. Genuine buyers welcome for weekend site inspection.",
-      images: imagesList.length > 0 ? imagesList.map(img => img.url) : ["https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"],
+      description: "Direct owner listing with 0% brokerage. Verified title registry deed ready for immediate transfer. Genuine buyers welcome for on-site inspection.",
+      images: imagesList.length > 0 
+        ? imagesList.map(img => img.url) 
+        : ["https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80"],
+      videoUrl: videoUrl.trim() || null,
       sellerName,
       sellerPhone,
       sellerType: "Verified Direct Owner",
+      sellerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
       isSold: false,
       verifiedOwner: true,
-      has360: false,
+      has360: true,
       furnishing,
-      floorLevel: "3rd Floor",
-      coords: "12.9784° N, 77.6408° E",
+      floorLevel: "Independent Villa / Floor",
+      coords: geoCoords,
       landmarks: [
-        { type: "metro", label: metroName, distance: metroDistance, time: "4 min walk", icon: "subway" },
-        { type: "park", label: parkName, distance: parkDistance, time: "2 min walk", icon: "park" },
-        { type: "market", label: marketName, distance: marketDistance, time: "3 min walk", icon: "storefront" }
+        { type: "transit", label: transitLabel, distance: transitDistance, time: transitTime, icon: "alt_route" },
+        { type: "market", label: marketLabel, distance: marketDistance, time: marketTime, icon: "storefront" },
+        { type: "park", label: parkLabel, distance: parkDistance, time: parkTime, icon: "water" }
       ],
       callingHours
     };
@@ -207,6 +384,13 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
     onAddProperty(newProperty);
     onBack();
   };
+
+  // Satellite URL for Preview
+  const previewMapUrl = buildSatelliteMapUrl(
+    locality, 
+    isCustomDistrict ? customDistrictInput : district, 
+    stateName
+  );
 
   return (
     <div className="flex-1 w-full bg-surface pt-16 pb-28 min-w-0 max-w-2xl mx-auto">
@@ -233,7 +417,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
             <img 
               alt="Profile" 
               className="w-8 h-8 rounded-full object-cover" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDNEqxzKN8N_FTKYy49cYmujcbjsHKlO2JDm3tnzbz-IPGetcxCQ2hY-XGZnuKb2YeHYIY7sNC-ndonG2pqPJtbVXlTJitdzg2ouVetF3eshofzPIue5omHHtKh-GS8fySWsM7O7cwLDUGhPSUjrH-T2w-vP9Ng1q0DP5qmjlLvHjDPe-o4kGlnOtMoOcWIRsC3jSi9nLYPHKO8BUVrmvgiBC7H8mrYYEe-4kFQg"
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80"
             />
           </div>
         </div>
@@ -353,58 +537,50 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
               </div>
             </div>
 
-            {/* Property Category */}
-            <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
-              <label className="font-label-lg text-label-lg text-primary uppercase tracking-wide">Property Category</label>
-              <div className="grid grid-cols-2 gap-space-xs">
-                {[
-                  { id: "Apartment", label: "Apartment / Flat", icon: "apartment" },
-                  { id: "Villa", label: "House / Villa", icon: "villa" },
-                  { id: "Plot", label: "Residential Plot", icon: "terrain" },
-                  { id: "Commercial", label: "Commercial Space", icon: "storefront" }
-                ].map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCategory(cat.id)}
-                    className={`p-2.5 rounded-lg text-left transition-all flex flex-col items-start gap-1 ${
-                      category === cat.id 
-                        ? "bg-primary text-on-primary font-semibold shadow-xs" 
-                        : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">{cat.icon}</span>
-                    <span className="font-label-md text-label-md">{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Title & Price */}
+            {/* Basic Info */}
             <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-md">
               <div className="flex flex-col gap-1">
                 <label className="font-label-md text-label-md text-on-surface-variant uppercase">Property Headline / Title</label>
                 <input 
-                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none focus:bg-surface-container-lowest transition-colors shadow-inner"
-                  placeholder="e.g. Architect-designed corner home with lush garden"
-                  type="text" 
+                  type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. 4 BHK Aravali View Independent Villa with Private Lawn"
+                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
                 />
               </div>
 
-              {/* Price & Unit */}
-              <div className="flex flex-col gap-space-xs">
-                <div className="flex items-center justify-between">
-                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">Expected Price</label>
-                  <span className="font-code-spec text-[11px] text-secondary">Fair price = 4x faster inquiries</span>
+              {/* Category Pills */}
+              <div className="flex flex-col gap-1.5">
+                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Property Type</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {["Apartments & Flats", "Houses & Villas", "Residential Plots", "Commercial Spaces"].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCategory(cat)}
+                      className={`py-2 px-2.5 rounded-lg text-center font-label-md text-[11.5px] transition ${
+                        category === cat
+                          ? "bg-primary text-surface font-bold shadow-xs"
+                          : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-space-xs">
+              </div>
+
+              {/* Price & Unit */}
+              <div className="flex flex-col gap-1">
+                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Expected Price ({dealType === "Sale" ? "Total Freehold" : "Monthly Rent"})</label>
+                <div className="flex gap-space-xs">
                   <div className="relative flex-1">
-                    <span className="absolute left-3 top-2.5 text-on-surface-variant font-code-spec text-code-spec">₹</span>
+                    <span className="absolute left-3 top-2.5 text-primary font-bold text-[16px]">₹</span>
                     <input 
-                      className="w-full bg-surface-container-low text-primary font-headline-sm text-headline-sm pl-8 pr-3 py-2 rounded-lg focus:outline-none focus:bg-surface-container-lowest transition-colors shadow-inner"
-                      type="text" 
+                      className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-2.5 pl-8 rounded-lg focus:outline-none shadow-inner font-bold"
+                      type="number"
+                      step="0.01"
                       value={priceNum}
                       onChange={(e) => setPriceNum(e.target.value)}
                     />
@@ -431,14 +607,13 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                   </div>
                 </div>
 
-                {/* Market Value Insight */}
                 <div className="bg-tertiary-fixed/30 p-2.5 rounded-lg flex items-center justify-between mt-1">
                   <div className="flex items-center gap-1.5 text-on-tertiary-fixed">
                     <span className="material-symbols-outlined text-[16px]">insights</span>
-                    <span className="font-code-spec text-[11px]">Locality Radar Value: ₹2.70 – ₹2.95 Cr</span>
+                    <span className="font-code-spec text-[11px]">Fair Market Range: ₹{priceNum} {priceUnit} (Zero Middleman Commission)</span>
                   </div>
                   <span className="font-code-spec text-[10px] text-on-tertiary-fixed font-semibold px-1.5 py-0.5 rounded bg-tertiary-fixed">
-                    Sweet Spot
+                    0% Commission
                   </span>
                 </div>
               </div>
@@ -484,73 +659,194 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
           </div>
         )}
 
-        {/* STEP 2: LOCATION PIN */}
+        {/* STEP 2: LOCATION PIN & ADDRESS */}
         {currentStep === 2 && (
           <div className="px-gutter-mobile flex flex-col gap-space-md">
             <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-md">
               <div className="flex items-center justify-between">
                 <span className="font-label-lg text-label-lg text-primary uppercase tracking-wide">Hyper-Local Pin</span>
-                <span className="font-code-spec text-[10px] text-tertiary-fixed-dim bg-surface-container px-2 py-0.5 rounded">GPS Ready</span>
+                <span className="font-code-spec text-[10px] text-tertiary-fixed-dim bg-surface-container px-2 py-0.5 rounded font-bold">
+                  All India • GPS Ready
+                </span>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">District / Micro-Market</label>
-                <select 
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
-                >
-                  <option value="South Delhi">South Delhi (DL)</option>
-                  <option value="Indiranagar BLR">Indiranagar (BLR)</option>
-                  <option value="Bandra West">Bandra West (MUM)</option>
-                  <option value="Gachibowli">Gachibowli (HYD)</option>
-                  <option value="DLF Phase 5">DLF Phase 5 (GGN)</option>
-                  <option value="Koregaon Park">Koregaon Park (PUN)</option>
-                </select>
+              {/* 1. Indian Pincode Quick-Scan Box */}
+              <div className="p-3 rounded-xl bg-surface-container-low border border-surface-container flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-label-md text-label-md text-primary font-bold flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px] text-secondary">qr_code_scanner</span>
+                    <span>Postal Pincode (Instant 6-Digit Auto-Scan)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handlePincodeScan(pincode)}
+                    disabled={isScanningPincode}
+                    className="px-2.5 py-1 rounded-lg bg-primary text-surface font-code-spec text-[10.5px] font-bold flex items-center gap-1 active:scale-95 transition"
+                  >
+                    <span className={`material-symbols-outlined text-[13px] ${isScanningPincode ? 'animate-spin' : ''}`}>
+                      {isScanningPincode ? 'sync' : 'search'}
+                    </span>
+                    <span>{isScanningPincode ? "Scanning..." : "⚡ Scan Pincode"}</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input 
+                    type="text"
+                    maxLength={6}
+                    value={pincode}
+                    onChange={handlePincodeInput}
+                    placeholder="e.g. 313300 (Rajsamand) or 110048 (Delhi)"
+                    className="w-full bg-surface-container-lowest text-primary font-body-md text-body-md p-2.5 pr-20 rounded-lg focus:outline-none border border-surface-container font-mono tracking-wider"
+                  />
+                  <span className="absolute right-3 top-2.5 font-code-spec text-[11px] text-on-surface-variant">
+                    6 Digits
+                  </span>
+                </div>
+
+                {pincodeMsg && (
+                  <div className={`text-[11px] font-code-spec px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${
+                    pincodeStatus === 'success' 
+                      ? 'bg-secondary-container text-on-secondary-fixed font-bold' 
+                      : pincodeStatus === 'error'
+                      ? 'bg-error-container text-on-error-container'
+                      : 'bg-surface-container text-on-surface-variant'
+                  }`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {pincodeStatus === 'success' ? 'verified' : pincodeStatus === 'error' ? 'info' : 'sync'}
+                    </span>
+                    <span>{pincodeMsg}</span>
+                  </div>
+                )}
+
+                {/* Quick Post Office Locality Suggestions from Pincode */}
+                {localitySuggestions.length > 0 && (
+                  <div className="flex flex-col gap-1 pt-1">
+                    <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">
+                      Select Post Office Area in this Pincode:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                      {localitySuggestions.slice(0, 10).map((locName) => (
+                        <button
+                          key={locName}
+                          type="button"
+                          onClick={() => setLocality(`${locName}, ${district}`)}
+                          className="px-2 py-0.5 rounded-full bg-surface-container-high hover:bg-secondary hover:text-surface text-[11px] font-label-md transition"
+                        >
+                          + {locName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* 2. State & District Selectors (All Indian States) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-xs">
+                {/* State */}
+                <div className="flex flex-col gap-1">
+                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">State</label>
+                  <select 
+                    value={stateName}
+                    onChange={(e) => handleStateChange(e.target.value)}
+                    className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
+                  >
+                    {getAllStates().map(st => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* District / Micro-Market */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="font-label-md text-label-md text-on-surface-variant uppercase">District / City</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomDistrict(!isCustomDistrict)}
+                      className="text-[10px] font-code-spec text-secondary underline"
+                    >
+                      {isCustomDistrict ? "Choose from list" : "+ Type manually"}
+                    </button>
+                  </div>
+
+                  {isCustomDistrict ? (
+                    <input
+                      type="text"
+                      value={customDistrictInput}
+                      onChange={(e) => setCustomDistrictInput(e.target.value)}
+                      placeholder="e.g. Rajsamand, Nathdwara, Kankroli"
+                      className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner border border-secondary/40"
+                    />
+                  ) : (
+                    <select 
+                      value={district}
+                      onChange={handleDistrictChange}
+                      className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
+                    >
+                      {availableDistricts.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                      <option value="__custom__">+ Enter Custom District / Tehsil...</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Locality / Colony / Sector / Village */}
               <div className="flex flex-col gap-1">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Locality / Colony / Sector</label>
+                <div className="flex items-center justify-between">
+                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">
+                    Locality / Colony / Village / Sector
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGeocodeLocality}
+                    disabled={isGeocodingAddress}
+                    className="text-[10.5px] font-code-spec text-secondary flex items-center gap-1 hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">my_location</span>
+                    <span>{isGeocodingAddress ? "Detecting GPS..." : "📍 Auto-Detect Area"}</span>
+                  </button>
+                </div>
                 <input 
                   type="text"
                   value={locality}
                   onChange={(e) => setLocality(e.target.value)}
-                  placeholder="e.g. Indiranagar 100ft Road or Greater Kailash 1"
+                  placeholder="e.g. Dhoinda, Rajnagar or C-Block Greater Kailash"
                   className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Pincode</label>
-                <input 
-                  type="text"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  placeholder="110048"
-                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
-                />
-              </div>
-
-              {/* Satellite Pin Preview */}
-              <div className="rounded-xl overflow-hidden shadow-sm h-40 bg-surface-dim relative">
+              {/* 4. Photorealistic Google Maps Satellite Mode Embed (t=k) */}
+              <div className="rounded-xl overflow-hidden shadow-sm h-48 bg-surface-dim relative border border-surface-container">
                 <iframe
                   className="w-full h-full filter saturate-[1.1]"
                   loading="lazy"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(locality + ', ' + district)}&t=k&z=15&output=embed`}
+                  src={previewMapUrl}
                   style={{ border: 0 }}
                   title="Satellite Pin Preview"
                 ></iframe>
-                <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-primary/80 backdrop-blur-md text-surface font-code-spec text-[10px]">
-                  Satellite Mode (t=k) Preview
+                
+                {/* Floating Map HUD */}
+                <div className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/85 backdrop-blur-md text-surface font-code-spec text-[10px] shadow-md">
+                  <span className="material-symbols-outlined text-[13px] text-amber-400">satellite_alt</span>
+                  <span className="truncate max-w-[200px]">
+                    Satellite (t=k): {locality ? locality + ', ' : ''}{isCustomDistrict ? customDistrictInput : district}, {stateName}
+                  </span>
+                </div>
+
+                <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/75 backdrop-blur-md text-white font-code-spec text-[9.5px]">
+                  {geoCoords}
                 </div>
               </div>
 
-              {/* Real Landmarks & Proximity Control (Manual + Auto-Detect) */}
+              {/* 5. Real Context-Aware Landmarks & Proximity Control */}
               <div className="p-3 rounded-xl bg-surface-container-low border border-surface-container flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-1">
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[16px] text-secondary">explore</span>
-                    <span className="font-label-md text-label-md font-bold text-primary">Nearby Landmarks & Proximity</span>
+                    <span className="font-label-md text-label-md font-bold text-primary">Nearby Physical Landmarks</span>
                   </div>
                   <button
                     type="button"
@@ -558,218 +854,233 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                     disabled={isDetectingLandmarks}
                     className="px-2.5 py-1 rounded-lg bg-primary-container text-secondary-container font-code-spec text-[10.5px] font-bold flex items-center gap-1 hover:brightness-110 active:scale-95 transition"
                   >
-                    <span className="material-symbols-outlined text-[13px]">
+                    <span className={`material-symbols-outlined text-[13px] ${isDetectingLandmarks ? 'animate-spin' : ''}`}>
                       {isDetectingLandmarks ? "sync" : "bolt"}
                     </span>
-                    <span>{isDetectingLandmarks ? "Detecting..." : "⚡ Auto-Fill Nearby"}</span>
+                    <span>{isDetectingLandmarks ? "Detecting..." : "⚡ Auto-Fill Nearby with AI"}</span>
                   </button>
                 </div>
 
+                <p className="font-body-sm text-[11px] text-on-surface-variant">
+                  Authentic landmarks for {isCustomDistrict ? customDistrictInput : district}, {stateName}. You can also manually customize names and distances below:
+                </p>
+
                 {detectSuccessMsg && (
-                  <div className="text-[11px] font-code-spec text-secondary bg-surface-container px-2 py-1 rounded">
-                    {detectSuccessMsg}
+                  <div className="text-[11px] font-code-spec text-secondary bg-surface-container px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    <span>{detectSuccessMsg}</span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 gap-2 pt-1">
-                  {/* Metro */}
+                  {/* Transit / Highway / Bus Stand */}
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[16px] text-secondary">subway</span>
+                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0" title="Transit / Highway / Railway">
+                      <span className="material-symbols-outlined text-[16px] text-secondary">alt_route</span>
                     </div>
                     <input
                       type="text"
-                      value={metroName}
-                      onChange={(e) => setMetroName(e.target.value)}
-                      placeholder="Nearest Metro / Train Station"
+                      value={transitLabel}
+                      onChange={(e) => setTransitLabel(e.target.value)}
+                      placeholder="Nearest Highway, Bus Stand or Metro"
                       className="flex-1 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container"
                     />
                     <input
                       type="text"
-                      value={metroDistance}
-                      onChange={(e) => setMetroDistance(e.target.value)}
-                      placeholder="e.g. 350m"
-                      className="w-20 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container text-center"
+                      value={transitDistance}
+                      onChange={(e) => setTransitDistance(e.target.value)}
+                      placeholder="e.g. 650m"
+                      className="w-20 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container text-center font-code-spec"
                     />
                   </div>
 
-                  {/* Park */}
+                  {/* Market / Commercial */}
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[16px] text-secondary">park</span>
-                    </div>
-                    <input
-                      type="text"
-                      value={parkName}
-                      onChange={(e) => setParkName(e.target.value)}
-                      placeholder="Nearest Green Park / Garden"
-                      className="flex-1 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container"
-                    />
-                    <input
-                      type="text"
-                      value={parkDistance}
-                      onChange={(e) => setParkDistance(e.target.value)}
-                      placeholder="e.g. 180m"
-                      className="w-20 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container text-center"
-                    />
-                  </div>
-
-                  {/* Market */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0" title="Market / Commercial Bazaar">
                       <span className="material-symbols-outlined text-[16px] text-secondary">storefront</span>
                     </div>
                     <input
                       type="text"
-                      value={marketName}
-                      onChange={(e) => setMarketName(e.target.value)}
-                      placeholder="Nearest Main Market / Hub"
+                      value={marketLabel}
+                      onChange={(e) => setMarketLabel(e.target.value)}
+                      placeholder="Nearest Commercial Market or Bazaar"
                       className="flex-1 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container"
                     />
                     <input
                       type="text"
                       value={marketDistance}
                       onChange={(e) => setMarketDistance(e.target.value)}
-                      placeholder="e.g. 200m"
-                      className="w-20 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container text-center"
+                      placeholder="e.g. 400m"
+                      className="w-20 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container text-center font-code-spec"
+                    />
+                  </div>
+
+                  {/* Park / Lake / Public Space */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0" title="Park / Lake / Garden">
+                      <span className="material-symbols-outlined text-[16px] text-secondary">water</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={parkLabel}
+                      onChange={(e) => setParkLabel(e.target.value)}
+                      placeholder="Nearest Green Park, Lake or Landmark"
+                      className="flex-1 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container"
+                    />
+                    <input
+                      type="text"
+                      value={parkDistance}
+                      onChange={(e) => setParkDistance(e.target.value)}
+                      placeholder="e.g. 1.2km"
+                      className="w-20 bg-surface-container-lowest text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container text-center font-code-spec"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-space-xs">
               <button
                 type="button"
                 onClick={() => setCurrentStep(1)}
-                className="w-1/3 py-3 px-3 rounded-xl bg-surface-container-high text-on-surface font-label-md text-label-md"
+                className="w-1/3 py-3 px-3 rounded-xl bg-surface-container hover:bg-surface-dim font-label-md text-label-md font-bold text-primary transition"
               >
                 Back
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
-                className="w-2/3 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(213,129,15,0.35)]"
+                className="w-2/3 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(213,129,15,0.35)] active:scale-[0.99] transition-transform"
               >
-                <span>Continue to Media (Step 3)</span>
+                <span>Continue to Media & Shield (Step 3)</span>
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: MEDIA & SHIELD */}
+        {/* STEP 3: MEDIA ENGINE & OWNER SHIELD */}
         {currentStep === 3 && (
           <div className="px-gutter-mobile flex flex-col gap-space-md">
+            {/* Real Photo Upload & AI Room Detection Card */}
             <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-md">
               <div className="flex items-center justify-between">
-                <span className="font-label-lg text-label-lg text-primary uppercase tracking-wide">Media & Verification</span>
-                <span className="font-code-spec text-[10px] text-secondary font-semibold">1-Tap Call Shield</span>
+                <div>
+                  <span className="font-label-lg text-label-lg text-primary uppercase tracking-wide">Property Photography</span>
+                  <p className="font-code-spec text-[10.5px] text-on-surface-variant mt-0.5">
+                    Select photos from phone camera or gallery • Auto-compressed for speed
+                  </p>
+                </div>
+                <span className="font-code-spec text-[10px] text-secondary font-bold px-2 py-0.5 rounded bg-surface-container">
+                  {imagesList.length}/5 Photos
+                </span>
               </div>
 
-              {/* Property Photos: Real File Upload & AI Room Detection */}
+              {/* Upload Action Area */}
               <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-label-md text-label-md text-primary font-bold uppercase tracking-wide">
-                    Property Photos ({imagesList.length}/5)
-                  </label>
-                  <span className="font-code-spec text-[10px] text-secondary">
-                    {isProcessingImage ? "Analyzing & Compressing..." : "Camera & Gallery Ready"}
-                  </span>
-                </div>
-
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  multiple 
-                  id="property-photo-upload" 
-                  className="hidden" 
-                  onChange={handleFileUpload}
-                  disabled={imagesList.length >= 5 || isProcessingImage}
-                />
-
-                {/* Upload Action Card */}
                 <label 
-                  htmlFor="property-photo-upload"
-                  className={`border-2 border-dashed border-secondary/40 hover:border-secondary bg-surface-container-low hover:bg-surface-container p-4 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition active:scale-[0.99] ${
-                    imagesList.length >= 5 ? "opacity-50 cursor-not-allowed" : ""
+                  htmlFor="file-upload-input"
+                  className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition text-center ${
+                    imagesList.length >= 5 
+                      ? "opacity-50 cursor-not-allowed border-surface-container bg-surface-container-low" 
+                      : "border-secondary/40 hover:border-secondary bg-surface-container-low/60 hover:bg-surface-container-low"
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-full bg-secondary-container text-secondary flex items-center justify-center mb-2 shadow-xs">
+                  <input
+                    id="file-upload-input"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={imagesList.length >= 5 || isProcessingImage}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <div className="w-12 h-12 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
                     <span className="material-symbols-outlined text-[24px]">
                       {isProcessingImage ? "sync" : "add_a_photo"}
                     </span>
                   </div>
-                  <span className="font-label-lg text-label-lg font-bold text-primary">
-                    {isProcessingImage ? "Optimizing & Detecting Room Types..." : "Upload Photos from Phone / Gallery"}
-                  </span>
-                  <span className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
-                    Select up to 5 photos • Automatic AI Room Detection & Compression
-                  </span>
-                </label>
-
-                {/* Anti-Broker Fraud Watermark Protection Toggle */}
-                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-surface-container-low border border-surface-container cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={autoWatermark} 
-                    onChange={(e) => setAutoWatermark(e.target.checked)} 
-                    className="mt-0.5 h-4 w-4 rounded accent-primary cursor-pointer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="font-label-md text-label-md text-primary font-bold flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[16px] text-secondary">verified_user</span>
-                      <span>Anti-Broker Fraud Watermarking</span>
+                  <div className="flex flex-col items-center">
+                    <span className="font-label-md text-label-md font-bold text-primary">
+                      {isProcessingImage ? "Compressing & Scanning Photos with AI..." : "Upload Photos from Phone / Gallery"}
                     </span>
-                    <p className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
-                      Auto-embeds non-erasable "Esets 0% Brokerage • Verified Freehold" watermark stamp on all photos to prevent unauthorized broker scraping.
-                    </p>
+                    <span className="font-code-spec text-[11px] text-on-surface-variant">
+                      JPG, PNG, WebP • Up to 5 photos • Instant auto-compression
+                    </span>
                   </div>
                 </label>
 
+                {/* Anti-Broker Fraud Watermark Toggle */}
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low border border-surface-container">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      shield
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="font-label-md text-[12px] font-bold text-primary">
+                        🛡️ Anti-Broker Fraud Watermark
+                      </span>
+                      <span className="font-code-spec text-[10px] text-on-surface-variant">
+                        Auto-stamps "ESETS 0% BROKERAGE" so brokers cannot re-list your photos
+                      </span>
+                    </div>
+                  </div>
+                  <input 
+                    type="checkbox"
+                    checked={autoWatermark}
+                    onChange={(e) => setAutoWatermark(e.target.checked)}
+                    className="w-4 h-4 accent-primary rounded cursor-pointer"
+                  />
+                </div>
+
                 {imageUploadError && (
-                  <div className="text-[11px] font-code-spec text-error bg-error-container/20 p-2 rounded-lg">
+                  <div className="text-[11px] font-code-spec text-error bg-error-container p-2 rounded-lg">
                     {imageUploadError}
                   </div>
                 )}
+              </div>
 
-                {/* Uploaded Photos Grid */}
-                {imagesList.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+              {/* Uploaded Photos Grid */}
+              {imagesList.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-code-spec text-on-surface-variant">
+                    <span>Uploaded Property Images:</span>
+                    <span>Tap star to set Cover Image</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {imagesList.map((img, idx) => (
                       <div 
                         key={idx}
-                        className={`relative rounded-xl overflow-hidden border-2 bg-surface-dim group ${
-                          img.isCover ? "border-primary shadow-sm" : "border-surface-container"
+                        className={`relative rounded-xl overflow-hidden aspect-[4/3] bg-surface-dim border-2 shadow-xs group ${
+                          img.isCover ? "border-secondary ring-2 ring-secondary/30" : "border-surface-container"
                         }`}
                       >
                         <img 
                           src={img.url} 
-                          alt={`Photo ${idx + 1}`} 
-                          className="w-full h-28 object-cover"
+                          alt={`Uploaded ${idx + 1}`} 
+                          className="w-full h-full object-cover"
                         />
-                        
-                        {/* Detected Room Badge */}
-                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white font-code-spec text-[10px] font-medium flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[11px] text-secondary">check</span>
-                          <span>{img.tag}</span>
-                        </span>
 
-                        {/* Cover Photo Badge */}
-                        {img.isCover && (
-                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-primary text-on-primary font-code-spec text-[9px] font-bold uppercase tracking-wider">
-                            Cover
+                        {/* Top Badges */}
+                        <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+                          {img.isCover && (
+                            <span className="px-1.5 py-0.5 rounded bg-secondary text-surface font-code-spec text-[9px] font-bold shadow-xs">
+                              COVER
+                            </span>
+                          )}
+                          <span className="px-1.5 py-0.5 rounded bg-primary/80 backdrop-blur-md text-surface font-code-spec text-[9px]">
+                            {img.tag}
                           </span>
-                        )}
+                        </div>
 
-                        {/* Delete / Set Cover Actions */}
+                        {/* Actions Overlay */}
                         <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
                           {!img.isCover && (
                             <button
                               type="button"
                               onClick={() => handleSetCoverImage(idx)}
-                              title="Set as Cover"
-                              className="w-6 h-6 rounded-full bg-black/60 hover:bg-primary text-white flex items-center justify-center text-[10px] transition"
+                              title="Set as Cover Image"
+                              className="w-6 h-6 rounded-full bg-black/60 hover:bg-black text-amber-400 flex items-center justify-center transition active:scale-90"
                             >
                               <span className="material-symbols-outlined text-[13px]">star</span>
                             </button>
@@ -777,8 +1088,8 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                           <button
                             type="button"
                             onClick={() => handleRemoveImage(idx)}
-                            title="Remove Photo"
-                            className="w-6 h-6 rounded-full bg-black/60 hover:bg-error text-white flex items-center justify-center text-[10px] transition"
+                            title="Delete photo"
+                            className="w-6 h-6 rounded-full bg-black/60 hover:bg-error text-white flex items-center justify-center transition active:scale-90"
                           >
                             <span className="material-symbols-outlined text-[13px]">close</span>
                           </button>
@@ -786,113 +1097,132 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                       </div>
                     ))}
                   </div>
-                )}
-
-                {/* Optional Web URL Toggle */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlInput(!showUrlInput)}
-                    className="text-[11px] font-code-spec text-secondary hover:underline flex items-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-[13px]">link</span>
-                    <span>{showUrlInput ? "Hide Web URL input" : "Or add photo via Web URL"}</span>
-                  </button>
-
-                  {showUrlInput && (
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        type="text"
-                        value={customUrlInput}
-                        onChange={(e) => setCustomUrlInput(e.target.value)}
-                        placeholder="https://images.unsplash.com/..."
-                        className="flex-1 bg-surface-container-low text-primary text-[12px] p-2.5 rounded-lg focus:outline-none border border-surface-container"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (customUrlInput.trim()) {
-                            setImagesList(prev => [
-                              ...prev,
-                              { url: customUrlInput.trim(), tag: "Property View", isCover: prev.length === 0 }
-                            ]);
-                            setCustomUrlInput("");
-                          }
-                        }}
-                        className="px-3 py-2 bg-primary-container text-secondary-container font-label-md text-[11px] font-bold rounded-lg"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  )}
                 </div>
+              )}
+
+              {/* Web URL Fallback */}
+              <div className="pt-1 border-t border-surface-container flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="font-code-spec text-[11px] text-secondary underline flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">link</span>
+                  <span>{showUrlInput ? "Hide image URL input" : "Have an online image link? Paste URL"}</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-space-xs">
+              {showUrlInput && (
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={customUrlInput}
+                    onChange={(e) => setCustomUrlInput(e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 bg-surface-container-low text-primary text-[12px] p-2 rounded-lg focus:outline-none border border-surface-container"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomUrl}
+                    className="px-3 py-2 rounded-lg bg-primary text-surface font-label-md text-[11px] font-bold"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+
+              {/* Video Walkthrough URL */}
+              <div className="flex flex-col gap-1 pt-2 border-t border-surface-container">
+                <label className="font-label-md text-label-md text-on-surface-variant uppercase flex items-center justify-between">
+                  <span>Verified On-Site Video Walkthrough URL</span>
+                  <span className="font-code-spec text-[10px] text-secondary">Optional MP4 / WebM</span>
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-on-surface-variant">
+                    videocam
+                  </span>
+                  <input 
+                    type="url"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="https://... (Direct inspection video URL)"
+                    className="w-full bg-surface-container-low text-primary font-body-md text-[13px] p-2.5 pl-9 rounded-lg focus:outline-none shadow-inner"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Direct Owner & Spam Shield Details */}
+            <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-md">
+              <span className="font-label-lg text-label-lg text-primary uppercase tracking-wide">
+                Direct Owner Contact & Calling Shield
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-xs">
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">Owner Name</label>
+                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">Full Legal Name</label>
                   <input 
                     type="text"
                     value={sellerName}
                     onChange={(e) => setSellerName(e.target.value)}
-                    className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
+                    className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-2.5 rounded-lg focus:outline-none shadow-inner"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">Phone Number</label>
+                  <label className="font-label-md text-label-md text-on-surface-variant uppercase">Direct Calling Phone</label>
                   <input 
-                    type="text"
+                    type="tel"
                     value={sellerPhone}
                     onChange={(e) => setSellerPhone(e.target.value)}
-                    className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
+                    className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-2.5 rounded-lg focus:outline-none shadow-inner font-mono"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Calling Hours Gatekeeper</label>
-                <input 
-                  type="text"
+                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Permitted Calling Hours</label>
+                <select 
                   value={callingHours}
                   onChange={(e) => setCallingHours(e.target.value)}
-                  placeholder="9:00 AM – 8:30 PM"
-                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-3 rounded-lg focus:outline-none shadow-inner"
-                />
-                <span className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">Calls outside these hours will automatically route to WhatsApp chat.</span>
+                  className="w-full bg-surface-container-low text-primary font-body-md text-body-md p-2.5 rounded-lg focus:outline-none shadow-inner"
+                >
+                  <option value="8:30 AM – 8:30 PM">8:30 AM – 8:30 PM (Recommended)</option>
+                  <option value="9:00 AM – 7:00 PM">9:00 AM – 7:00 PM (Office Hours)</option>
+                  <option value="10:00 AM – 9:00 PM">10:00 AM – 9:00 PM (Evening Friendly)</option>
+                  <option value="In-App WhatsApp Only">In-App WhatsApp Only (Zero Voice Calls)</option>
+                </select>
               </div>
 
-              {/* Zero Token Consent */}
-              <label className="flex items-start gap-2.5 p-3 rounded-lg bg-surface-container-low cursor-pointer select-none">
+              {/* Agreement Checkbox */}
+              <label className="flex items-start gap-2 cursor-pointer mt-1">
                 <input 
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded accent-primary cursor-pointer"
+                  className="mt-1 w-4 h-4 accent-primary rounded"
                 />
-                <div className="min-w-0 flex-1">
-                  <span className="font-label-md text-label-md text-primary font-bold">100% Zero Online Advance Agreement</span>
-                  <p className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
-                    I agree never to ask for online token money, visiting fees, or UPI advances before in-person physical registry deed inspection.
-                  </p>
-                </div>
+                <span className="font-body-sm text-[12px] text-on-surface-variant">
+                  I certify that I am the direct freehold title deed owner or authorized family member. I agree to <strong>0% brokerage</strong> and understand I can freeze all incoming calls anytime via the <strong>“Sold It” Call Shield</strong>.
+                </span>
               </label>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-space-xs">
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="w-1/3 py-3 px-3 rounded-xl bg-surface-container-high text-on-surface font-label-md text-label-md"
+                className="w-1/3 py-3 px-3 rounded-xl bg-surface-container hover:bg-surface-dim font-label-md text-label-md font-bold text-primary transition"
               >
                 Back
               </button>
               <button
                 type="button"
+                disabled={!agreeTerms}
                 onClick={handleSubmit}
-                className="w-2/3 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(213,129,15,0.35)]"
+                className="w-2/3 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(213,129,15,0.35)] active:scale-[0.99] transition-transform disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[18px]">verified</span>
-                <span>Publish Free Direct Listing</span>
+                <span>Publish 0% Brokerage Listing</span>
               </button>
             </div>
           </div>

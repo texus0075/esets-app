@@ -65,15 +65,22 @@ export default function App() {
   const [myPropertyIds, setMyPropertyIds] = useState(() => {
     try {
       const stored = localStorage.getItem("esets_my_property_ids");
-      return stored ? JSON.parse(stored) : ["prop-delhi-gk1"];
+      return stored ? JSON.parse(stored) : ["prop-rajsamand-dhoinda"];
     } catch {
-      return ["prop-delhi-gk1"];
+      return ["prop-rajsamand-dhoinda"];
     }
   });
 
   // Persistent Custom Saved Territories (Locations that user adds or saves from GPS)
   const [savedLocations, setSavedLocations] = useState(() => {
     try {
+      const version = localStorage.getItem("esets_data_version");
+      if (version !== "v3_real") {
+        localStorage.removeItem("esets_saved_locations");
+        localStorage.removeItem("esets_custom_properties");
+        localStorage.setItem("esets_data_version", "v3_real");
+        return DISTRICTS.filter(d => d !== "All Districts");
+      }
       const stored = localStorage.getItem("esets_saved_locations");
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -88,10 +95,14 @@ export default function App() {
   // Persistent Properties State
   const [properties, setProperties] = useState(() => {
     try {
+      const version = localStorage.getItem("esets_data_version");
+      if (version !== "v3_real") {
+        return INITIAL_PROPERTIES;
+      }
       const stored = localStorage.getItem("esets_custom_properties");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(p => p.id === "prop-rajsamand-dhoinda")) {
           const storedIds = new Set(parsed.map(p => p.id));
           const freshMissing = INITIAL_PROPERTIES.filter(p => !storedIds.has(p.id));
           return [...parsed, ...freshMissing];

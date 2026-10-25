@@ -13,14 +13,19 @@ import { db } from "../firebase";
 import { INITIAL_PROPERTIES } from "../data/mockData";
 
 const COLLECTION_NAME = "properties";
-const LOCAL_STORAGE_KEY = "esets_properties_cache";
+const LOCAL_STORAGE_KEY = "esets_properties_cache_v3";
 
 export const getCachedProperties = () => {
   try {
+    // Purge deprecated legacy caches if present
+    localStorage.removeItem("esets_properties_cache");
+    localStorage.removeItem("esets_properties_cache_v2");
+
     const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].landmarks) {
+      // Ensure cache has the new authentic dataset and no broken encoding
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(p => p.id === "prop-rajsamand-dhoinda")) {
         return parsed;
       }
     }

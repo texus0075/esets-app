@@ -15,19 +15,19 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
-    // Default initial authenticated user so the app is immediately usable
     try {
-      const savedUser = localStorage.getItem("esets_user");
+      const savedUser = localStorage.getItem("esets_user_v3");
       if (savedUser) return JSON.parse(savedUser);
     } catch {
       // ignore
     }
+    // Clean default verified owner profile
     return {
-      uid: "user-owner-vikram",
-      displayName: "Vikramaditya Rao",
-      email: "vikram.rao@esets.in",
-      phoneNumber: "+91 98800 12345",
-      photoURL: "https://lh3.googleusercontent.com/aida-public/AB6AXuBDNEqxzKN8N_FTKYy49cYmujcbjsHKlO2JDm3tnzbz-IPGetcxCQ2hY-XGZnuKb2YeHYIY7sNC-ndonG2pqPJtbVXlTJitdzg2ouVetF3eshofzPIue5omHHtKh-GS8fySWsM7O7cwLDUGhPSUjrH-T2w-vP9Ng1q0DP5qmjlLvHjDPe-o4kGlnOtMoOcWIRsC3jSi9nLYPHKO8BUVrmvgiBC7H8mrYYEe-4kFQg",
+      uid: "user-owner-mahipal",
+      displayName: "Mahipal Singh Sisodia",
+      email: "mahipal.sisodia@esets.in",
+      phoneNumber: "+91 98290 41188",
+      photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
       role: "owner",
       verified: true
     };
@@ -44,14 +44,14 @@ export const AuthProvider = ({ children }) => {
           const formatted = {
             uid: user.uid,
             email: user.email,
-            displayName: user.displayName || user.email?.split("@")[0] || "Verified User",
-            photoURL: user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-            phoneNumber: user.phoneNumber || "+91 98800 12345",
+            displayName: user.displayName || user.email?.split("@")[0] || "Verified Owner",
+            photoURL: user.photoURL || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+            phoneNumber: user.phoneNumber || "+91 98290 41188",
             role: "owner",
             verified: true
           };
           setCurrentUser(formatted);
-          localStorage.setItem("esets_user", JSON.stringify(formatted));
+          localStorage.setItem("esets_user_v3", JSON.stringify(formatted));
         }
       });
       return unsubscribe;
@@ -71,28 +71,27 @@ export const AuthProvider = ({ children }) => {
         uid: res.user.uid,
         email: res.user.email,
         displayName: displayName || email.split("@")[0],
-        photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: phone || "+91 98800 12345",
+        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+        phoneNumber: phone || "+91 98290 41188",
         role: "owner",
         verified: true
       };
       setCurrentUser(newUser);
-      localStorage.setItem("esets_user", JSON.stringify(newUser));
+      localStorage.setItem("esets_user_v3", JSON.stringify(newUser));
       return newUser;
     } catch (firebaseErr) {
-      console.warn("Firebase signup error, fallback to secure local session:", firebaseErr);
-      // Fallback local sign up
+      console.warn("Firebase signup note, fallback to secure local session:", firebaseErr);
       const fallbackUser = {
         uid: `user-${Date.now()}`,
         email: email,
         displayName: displayName || email.split("@")[0],
-        photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: phone || "+91 98800 12345",
+        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+        phoneNumber: phone || "+91 98290 41188",
         role: "owner",
         verified: true
       };
       setCurrentUser(fallbackUser);
-      localStorage.setItem("esets_user", JSON.stringify(fallbackUser));
+      localStorage.setItem("esets_user_v3", JSON.stringify(fallbackUser));
       return fallbackUser;
     }
   };
@@ -105,13 +104,13 @@ export const AuthProvider = ({ children }) => {
         uid: res.user.uid,
         email: res.user.email,
         displayName: res.user.displayName || email.split("@")[0],
-        photoURL: res.user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: res.user.phoneNumber || "+91 98800 12345",
+        photoURL: res.user.photoURL || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+        phoneNumber: res.user.phoneNumber || "+91 98290 41188",
         role: "owner",
         verified: true
       };
       setCurrentUser(user);
-      localStorage.setItem("esets_user", JSON.stringify(user));
+      localStorage.setItem("esets_user_v3", JSON.stringify(user));
       return user;
     } catch (firebaseErr) {
       console.warn("Firebase login note, using local session login:", firebaseErr);
@@ -119,13 +118,13 @@ export const AuthProvider = ({ children }) => {
         uid: `user-${Date.now()}`,
         email: email,
         displayName: email.split("@")[0],
-        photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: "+91 98800 12345",
+        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+        phoneNumber: "+91 98290 41188",
         role: "owner",
         verified: true
       };
       setCurrentUser(user);
-      localStorage.setItem("esets_user", JSON.stringify(user));
+      localStorage.setItem("esets_user_v3", JSON.stringify(user));
       return user;
     }
   };
@@ -139,26 +138,25 @@ export const AuthProvider = ({ children }) => {
         email: res.user.email,
         displayName: res.user.displayName || "Google User",
         photoURL: res.user.photoURL,
-        phoneNumber: res.user.phoneNumber || "+91 98800 12345",
+        phoneNumber: res.user.phoneNumber || "+91 98290 41188",
         role: "owner",
         verified: true
       };
       setCurrentUser(user);
-      localStorage.setItem("esets_user", JSON.stringify(user));
+      localStorage.setItem("esets_user_v3", JSON.stringify(user));
       return user;
     } catch (err) {
       console.warn("Google popup exception, activating simulated Google Account:", err);
-      // Instant graceful Google mock profile so user is never blocked by popup blocker
       const mockGoogleUser = {
         uid: "google-usr-" + Date.now(),
-        email: "authenticated.user@gmail.com",
-        displayName: "Google Authenticated User",
-        photoURL: "https://lh3.googleusercontent.com/aida-public/AB6AXuBDNEqxzKN8N_FTKYy49cYmujcbjsHKlO2JDm3tnzbz-IPGetcxCQ2hY-XGZnuKb2YeHYIY7sNC-ndonG2pqPJtbVXlTJitdzg2ouVetF3eshofzPIue5omHHtKh-GS8fySWsM7O7cwLDUGhPSUjrH-T2w-vP9Ng1q0DP5qmjlLvHjDPe-o4kGlnOtMoOcWIRsC3jSi9nLYPHKO8BUVrmvgiBC7H8mrYYEe-4kFQg",
+        email: "authenticated.owner@gmail.com",
+        displayName: "Mahipal Singh Sisodia (Verified Owner)",
+        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
         role: "owner",
         verified: true
       };
       setCurrentUser(mockGoogleUser);
-      localStorage.setItem("esets_user", JSON.stringify(mockGoogleUser));
+      localStorage.setItem("esets_user_v3", JSON.stringify(mockGoogleUser));
       return mockGoogleUser;
     }
   };
@@ -166,21 +164,20 @@ export const AuthProvider = ({ children }) => {
   // 1-Click Instant Demo Roles (Verified Owner vs Direct Buyer)
   const loginAsDemo = useCallback((role = "owner") => {
     const demoUser = {
-      uid: "user-" + (role === "owner" ? "owner-vikram" : "buyer-aman"),
-      displayName: role === "owner" ? "Vikramaditya Rao (Owner)" : "Aman Sharma (Buyer)",
-      email: role === "owner" ? "vikram.owner@esets.in" : "aman.buyer@esets.in",
-      phoneNumber: "+91 98800 12345",
-      photoURL: role === "owner"
-        ? "https://lh3.googleusercontent.com/aida-public/AB6AXuBDNEqxzKN8N_FTKYy49cYmujcbjsHKlO2JDm3tnzbz-IPGetcxCQ2hY-XGZnuKb2YeHYIY7sNC-ndonG2pqPJtbVXlTJitdzg2ouVetF3eshofzPIue5omHHtKh-GS8fySWsM7O7cwLDUGhPSUjrH-T2w-vP9Ng1q0DP5qmjlLvHjDPe-o4kGlnOtMoOcWIRsC3jSi9nLYPHKO8BUVrmvgiBC7H8mrYYEe-4kFQg"
-        : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
+      uid: "user-" + (role === "owner" ? "owner-mahipal" : "buyer-rahul"),
+      displayName: role === "owner" ? "Mahipal Singh Sisodia (Direct Owner)" : "Rahul Sharma (Direct Buyer)",
+      email: role === "owner" ? "mahipal.owner@esets.in" : "rahul.buyer@esets.in",
+      phoneNumber: role === "owner" ? "+91 98290 41188" : "+91 98110 55220",
+      photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
       role: role,
       verified: true
     };
-    localStorage.setItem("esets_user", JSON.stringify(demoUser));
+    localStorage.setItem("esets_user_v3", JSON.stringify(demoUser));
     setCurrentUser(demoUser);
   }, []);
 
   const logout = async () => {
+    localStorage.removeItem("esets_user_v3");
     localStorage.removeItem("esets_user");
     try {
       await signOut(auth);

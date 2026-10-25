@@ -4,6 +4,7 @@
  * Secure internal failover engine using explicit if-else cascades.
  * Automatically tries Primary Key -> Secondary Key -> Fallback Keys.
  * Never exposes keys or developer internals in user UI.
+ * Zero hardcoded Bangalore/Karnataka leak onto other states!
  */
 
 export const GEMINI_MODEL = "gemini-2.5-flash";
@@ -56,7 +57,6 @@ async function callGeminiEndpoint(apiKey, prompt) {
           return JSON.parse(rawText);
         }
       } else if (response.status === 404) {
-        // Try next compatible model
         continue;
       } else {
         console.warn(`[Internal Service] Key response status ${response.status}`);
@@ -72,18 +72,20 @@ async function callGeminiEndpoint(apiKey, prompt) {
 
 /**
  * Deep Neighborhood Intelligence with strict If-Else Multi-Key Cascade
+ * Context-aware for Metro (Delhi, Mumbai, Bengaluru) vs Non-Metro (Rajasthan, Tier-2/3)
  */
 export async function analyzeLandmarksWithGemini(locality, district, state) {
-  const prompt = `Analyze Indian real estate location: "${locality}, ${district}, ${state}".
-Provide closest authentic:
-1. Nearest Metro / Local Train Station (with walk/drive distance).
-2. Nearest Public Green Park / Garden.
-3. Nearest Main Market / Grocery hub.
-Format JSON only:
+  const prompt = `Analyze Indian real estate location: "${locality || ''}, ${district || ''}, ${state || 'India'}".
+Identify 3 REAL physical landmarks in or right next to this exact locality/district:
+1. Nearest Transit: If Delhi/Mumbai/Bengaluru/Hyderabad/Kolkata, give the nearest Metro Station. If non-metro or rural/town (e.g. Rajsamand, Dhoinda, Udaipur, Alwar, etc.), DO NOT invent a fake metro! Instead, give the nearest National/State Highway, Main Bus Stand, or Railway Station.
+2. Nearest Main Market, Bazaar, or Commercial Corridor.
+3. Nearest Green Park, Lake, Promenade, or prominent Public Landmark.
+
+Return strictly JSON matching this structure:
 {
-  "metro": { "name": "Exact Name Station", "distance": "350m", "time": "4 min walk" },
-  "park": { "name": "Exact Park Name", "distance": "180m", "time": "2 min walk" },
-  "market": { "name": "Exact Market Name", "distance": "300m", "time": "3 min walk" }
+  "transit": { "label": "Transit Name", "distance": "500m", "time": "6 min walk", "icon": "directions_subway" },
+  "market": { "label": "Market / Bazaar Name", "distance": "350m", "time": "4 min walk", "icon": "storefront" },
+  "park": { "label": "Park / Lake / Public Space Name", "distance": "200m", "time": "2 min walk", "icon": "park" }
 }`;
 
   const keys = getPrivateApiKeys();
@@ -113,31 +115,6 @@ Format JSON only:
     const res5 = await callGeminiEndpoint(keys[4], prompt);
     if (res5) return res5;
   }
-  
-  if (keys.length > 5 && keys[5]) {
-    const res6 = await callGeminiEndpoint(keys[5], prompt);
-    if (res6) return res6;
-  }
-  
-  if (keys.length > 6 && keys[6]) {
-    const res7 = await callGeminiEndpoint(keys[6], prompt);
-    if (res7) return res7;
-  }
-  
-  if (keys.length > 7 && keys[7]) {
-    const res8 = await callGeminiEndpoint(keys[7], prompt);
-    if (res8) return res8;
-  }
-  
-  if (keys.length > 8 && keys[8]) {
-    const res9 = await callGeminiEndpoint(keys[8], prompt);
-    if (res9) return res9;
-  }
-  
-  if (keys.length > 9 && keys[9]) {
-    const res10 = await callGeminiEndpoint(keys[9], prompt);
-    if (res10) return res10;
-  }
 
   return null;
 }
@@ -145,16 +122,16 @@ Format JSON only:
 /**
  * OpenStreetMap Live Nominatim Lookup (100% Free, Zero Key Needed)
  */
-export async function fetchOSMLandmarks(locality, district) {
-  const query = `${locality}, ${district}`.trim();
+export async function fetchOSMLandmarks(locality, district, state) {
+  const query = [locality, district, state, "India"].filter(Boolean).join(", ");
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
         query
-      )}&format=json&limit=3&addressdetails=1`,
+      )}&format=json&limit=3&addressdetails=1&countrycodes=in`,
       {
         headers: {
-          "Accept-Language": "en",
+          "Accept-Language": "en,hi",
           "User-Agent": "EsetsRealEstateMarketplace/1.0"
         }
       }
@@ -167,46 +144,121 @@ export async function fetchOSMLandmarks(locality, district) {
 }
 
 /**
- * Topographical Baseline Defaults by District
+ * Topographical Baseline Defaults by District (Major Indian Centers)
  */
 export const DISTRICT_TOPOGRAPHICAL_DEFAULTS = {
+  // Rajasthan
+  "Rajsamand": [
+    { type: "transit", label: "NH-8 Udaipur-Ajmer Highway / Rajnagar Circle", distance: "650m", time: "2 min drive", icon: "alt_route" },
+    { type: "park", label: "Rajsamand Lake Promenade & Garden", distance: "1.2km", time: "4 min drive", icon: "water" },
+    { type: "market", label: "Rajnagar Main Commercial Bazaar", distance: "400m", time: "5 min walk", icon: "storefront" }
+  ],
+  "Udaipur": [
+    { type: "transit", label: "Udaipur City Railway Station / Chetak Circle", distance: "2.1km", time: "7 min drive", icon: "train" },
+    { type: "park", label: "Fateh Sagar Lake Promenade & Nehru Park", distance: "800m", time: "8 min walk", icon: "water" },
+    { type: "market", label: "Bapu Bazaar & Hathi Pole Commercial Hub", distance: "600m", time: "6 min walk", icon: "storefront" }
+  ],
+  "Jaipur": [
+    { type: "transit", label: "Mansarovar Metro / Ajmer Road Highway", distance: "850m", time: "9 min walk", icon: "subway" },
+    { type: "park", label: "Central Park & City Park Mansarovar", distance: "600m", time: "6 min walk", icon: "park" },
+    { type: "market", label: "MI Road & C-Scheme High Street", distance: "450m", time: "5 min walk", icon: "storefront" }
+  ],
+  "Jodhpur": [
+    { type: "transit", label: "Jodhpur Junction / Pali Road Corridor", distance: "1.8km", time: "5 min drive", icon: "train" },
+    { type: "park", label: "Umaid Heritage Park & Garden", distance: "700m", time: "7 min walk", icon: "park" },
+    { type: "market", label: "Sardar Market & Nai Sarak Commercial Center", distance: "500m", time: "5 min walk", icon: "storefront" }
+  ],
+
+  // Delhi NCR
   "South Delhi": [
-    { type: "metro", label: "Greater Kailash Metro (Magenta)", distance: "420m", time: "5 min walk", icon: "subway" },
+    { type: "transit", label: "Greater Kailash Metro (Magenta Line)", distance: "420m", time: "5 min walk", icon: "subway" },
     { type: "park", label: "M-Block Municipal Park", distance: "150m", time: "2 min walk", icon: "park" },
     { type: "market", label: "GK-1 M-Block Market", distance: "250m", time: "3 min walk", icon: "storefront" }
   ],
-  "DLF Phase 5": [
-    { type: "metro", label: "Sector 53-54 Rapid Metro", distance: "650m", time: "7 min walk", icon: "subway" },
+  "New Delhi": [
+    { type: "transit", label: "Rajiv Chowk Metro / Barakhamba Station", distance: "350m", time: "4 min walk", icon: "subway" },
+    { type: "park", label: "Lodhi Garden & Central Park", distance: "500m", time: "5 min walk", icon: "park" },
+    { type: "market", label: "Connaught Place Inner Circle", distance: "200m", time: "2 min walk", icon: "storefront" }
+  ],
+  "Gurugram": [
+    { type: "transit", label: "Sector 53-54 Rapid Metro / Golf Course Rd", distance: "600m", time: "6 min walk", icon: "subway" },
     { type: "park", label: "Aravali Biodiversity Park", distance: "1.4km", time: "4 min drive", icon: "park" },
-    { type: "market", label: "South Point Mall & Galleria", distance: "500m", time: "5 min walk", icon: "storefront" }
+    { type: "market", label: "South Point Mall & Galleria Market", distance: "450m", time: "5 min walk", icon: "storefront" }
   ],
-  "Indiranagar BLR": [
-    { type: "metro", label: "Indiranagar Metro (Purple Line)", distance: "350m", time: "4 min walk", icon: "subway" },
-    { type: "park", label: "Defence Colony Children Park", distance: "180m", time: "2 min walk", icon: "park" },
-    { type: "market", label: "100ft Road High Street & CMH", distance: "200m", time: "3 min walk", icon: "storefront" }
-  ],
-  "Bandra West": [
-    { type: "metro", label: "Khar Road / Bandra Local Station", distance: "850m", time: "10 min walk", icon: "subway" },
-    { type: "park", label: "Jogger's Park & Carter Road", distance: "350m", time: "4 min walk", icon: "park" },
-    { type: "market", label: "Pali Hill & Linking Road", distance: "300m", time: "3 min walk", icon: "storefront" }
-  ],
-  "Sector 137 Noida": [
-    { type: "metro", label: "Sector 137 Metro (Aqua Line)", distance: "550m", time: "6 min walk", icon: "subway" },
+  "Gautam Buddha Nagar (Noida)": [
+    { type: "transit", label: "Sector 137 Metro (Aqua Line) / Noida Expressway", distance: "550m", time: "6 min walk", icon: "subway" },
     { type: "park", label: "Noida Biodiversity Eco Park", distance: "400m", time: "4 min walk", icon: "park" },
-    { type: "market", label: "Advant Navis Commercial Hub", distance: "750m", time: "8 min walk", icon: "storefront" }
+    { type: "market", label: "Advant Navis Commercial Corridor", distance: "700m", time: "7 min walk", icon: "storefront" }
   ],
-  "Gachibowli HYD": [
-    { type: "metro", label: "Raidurg Metro (Blue Line)", distance: "1.8km", time: "5 min cab", icon: "subway" },
-    { type: "park", label: "Gachibowli Stadium Green Grounds", distance: "500m", time: "6 min walk", icon: "park" },
-    { type: "market", label: "DLF Cyber City Food & Grocery Hub", distance: "400m", time: "4 min walk", icon: "storefront" }
+
+  // Maharashtra
+  "Mumbai City": [
+    { type: "transit", label: "Bandra / Khar Local Railway Station", distance: "750m", time: "8 min walk", icon: "train" },
+    { type: "park", label: "Jogger's Park & Carter Road Promenade", distance: "300m", time: "3 min walk", icon: "water" },
+    { type: "market", label: "Pali Hill & Linking Road High Street", distance: "350m", time: "4 min walk", icon: "storefront" }
+  ],
+  "Pune": [
+    { type: "transit", label: "Ruby Hall Metro Station / Bund Garden Rd", distance: "900m", time: "10 min walk", icon: "subway" },
+    { type: "park", label: "Osho Teerth Park & Botanical Gardens", distance: "450m", time: "5 min walk", icon: "park" },
+    { type: "market", label: "Koregaon Park North Main Road High Street", distance: "300m", time: "3 min walk", icon: "storefront" }
+  ],
+
+  // Karnataka
+  "Bengaluru Urban": [
+    { type: "transit", label: "Indiranagar Metro (Purple Line) / CMH Rd", distance: "350m", time: "4 min walk", icon: "subway" },
+    { type: "park", label: "Defence Colony Children's Park", distance: "180m", time: "2 min walk", icon: "park" },
+    { type: "market", label: "100ft Road Commercial Corridor", distance: "200m", time: "3 min walk", icon: "storefront" }
   ]
 };
+
+/**
+ * Clean Dynamic Fallback Generator for ANY District in India
+ * Zero Bangalore leaks! If user is in Rajsamand, it generates Rajsamand landmarks!
+ */
+export function generateLocalBaselineLandmarks(locality, district, state) {
+  const loc = (locality || "").trim();
+  const dist = (district || "Local District").trim();
+  const st = (state || "").trim();
+
+  // If district matches pre-calibrated baseline, use it
+  if (DISTRICT_TOPOGRAPHICAL_DEFAULTS[dist]) {
+    return DISTRICT_TOPOGRAPHICAL_DEFAULTS[dist];
+  }
+
+  // Check if any metro cities apply
+  const isMetro = ["Delhi", "Mumbai", "Bengaluru", "Hyderabad", "Kolkata", "Chennai"].some(
+    m => dist.toLowerCase().includes(m.toLowerCase()) || st.toLowerCase().includes(m.toLowerCase())
+  );
+
+  return [
+    {
+      type: "transit",
+      label: isMetro ? `${loc || dist} Metro / Rapid Transit Station` : `${loc || dist} Main Highway / Bus Stand Corridor`,
+      distance: isMetro ? "450m" : "800m",
+      time: isMetro ? "5 min walk" : "3 min drive",
+      icon: isMetro ? "subway" : "alt_route"
+    },
+    {
+      type: "market",
+      label: `${loc || dist} Central Commercial Market & Grocery Hub`,
+      distance: "350m",
+      time: "4 min walk",
+      icon: "storefront"
+    },
+    {
+      type: "park",
+      label: `${loc || dist} Municipal Green Park & Walking Track`,
+      distance: "250m",
+      time: "3 min walk",
+      icon: "park"
+    }
+  ];
+}
 
 export function resolvePropertyLandmarks(property) {
   if (property?.landmarks && Array.isArray(property.landmarks) && property.landmarks.length > 0) {
     return property.landmarks;
   }
 
-  const districtKey = property?.district || "Indiranagar BLR";
-  return DISTRICT_TOPOGRAPHICAL_DEFAULTS[districtKey] || DISTRICT_TOPOGRAPHICAL_DEFAULTS["Indiranagar BLR"];
+  return generateLocalBaselineLandmarks(property?.locality, property?.district, property?.state);
 }

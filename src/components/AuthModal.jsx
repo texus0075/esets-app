@@ -59,22 +59,22 @@ export default function AuthModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-surface rounded-3xl max-w-md w-full shadow-2xl border border-surface-container overflow-hidden my-auto text-on-surface animate-in fade-in zoom-in-95 duration-150">
         
-        {/* Modal Header */}
-        <div className="p-4 border-b border-surface-container flex items-center justify-between bg-surface-container-low">
-          <div className="flex items-center gap-2.5">
-            <StampLogo className="w-7 h-7" showText={false} />
+        {/* Header with Stamp Logo */}
+        <div className="p-5 pb-4 border-b border-surface-container flex items-center justify-between bg-surface-container-low">
+          <div className="flex items-center gap-2">
+            <StampLogo className="w-8 h-8" showText={false} />
             <div>
               <h3 className="font-headline-sm text-headline-sm text-primary font-bold">
-                {isSignup ? "Create Free Account" : "Sign In to Esets"}
+                {isSignup ? "Create Owner Account" : "Access Esets Account"}
               </h3>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">
-                100% Direct C2C Real Estate • Zero Brokerage
+              <p className="font-body-sm text-[11.5px] text-on-surface-variant">
+                100% Peer-to-Peer Real Estate • 0% Brokerage
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition"
+            className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface active:scale-95 transition"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -82,14 +82,13 @@ export default function AuthModal({ isOpen, onClose }) {
 
         <div className="p-5 space-y-4">
           
-          {/* 1. Fast Google 1-Tap OAuth Button (100% Free, Zero SMS Cost) */}
+          {/* 1. Fast Google 1-Tap OAuth Button */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-surface-container-lowest border border-surface-container shadow-xs hover:bg-surface-container-low font-label-md text-label-md font-bold text-primary transition active:scale-98"
           >
-            {/* Google Multi-Color SVG Icon */}
             <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -99,26 +98,28 @@ export default function AuthModal({ isOpen, onClose }) {
             <span>Continue with Google</span>
           </button>
 
-          {/* 2. Instant 1-Click Demo Profiles */}
+          {/* 2. Instant 1-Click Fast Switch Profiles */}
           <div className="p-3 rounded-2xl bg-surface-container border border-surface-container-high space-y-2">
             <span className="text-[10.5px] font-code-spec font-bold uppercase text-on-surface-variant tracking-wider flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px] text-secondary">flash_on</span>
-              <span>1-Click Instant Test Mode (No Password Needed):</span>
+              <span>1-Click Fast Profile Switch:</span>
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleDemoSignIn("owner")}
-                className="py-2 px-3 rounded-xl bg-primary text-surface font-label-md text-[11.5px] font-bold shadow-xs hover:opacity-95 transition"
+                className="py-2 px-3 rounded-xl bg-primary text-surface font-label-md text-[11.5px] font-bold shadow-xs hover:opacity-95 transition flex items-center justify-center gap-1.5"
               >
-                🏡 Verified Owner
+                <span>🏠</span>
+                <span>Direct Owner</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoSignIn("buyer")}
-                className="py-2 px-3 rounded-xl bg-surface-container-highest text-primary font-label-md text-[11.5px] font-bold shadow-xs hover:bg-surface-dim transition"
+                className="py-2 px-3 rounded-xl bg-surface-container-highest text-primary font-label-md text-[11.5px] font-bold shadow-xs hover:bg-surface-dim transition flex items-center justify-center gap-1.5"
               >
-                🔍 Direct Buyer
+                <span>🔍</span>
+                <span>Direct Buyer</span>
               </button>
             </div>
           </div>
@@ -151,7 +152,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   <input 
                     type="text" 
                     required
-                    placeholder="e.g. Vikramaditya Rao"
+                    placeholder="e.g. Mahipal Singh Sisodia"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
@@ -163,7 +164,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   </label>
                   <input 
                     type="tel" 
-                    placeholder="+91 98800 12345"
+                    placeholder="+91 98290 41188"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
@@ -193,8 +194,7 @@ export default function AuthModal({ isOpen, onClose }) {
               <input 
                 type="password" 
                 required
-                minLength={6}
-                placeholder="Minimum 6 characters"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
@@ -204,13 +204,16 @@ export default function AuthModal({ isOpen, onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-label-md font-bold shadow-xs active:scale-98 transition flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-label-md font-bold shadow-md hover:opacity-95 active:scale-98 transition flex items-center justify-center gap-2"
             >
-              <span>{loading ? "Authenticating..." : (isSignup ? "Create Free Account" : "Sign In")}</span>
+              <span className="material-symbols-outlined text-[18px]">
+                {isSignup ? "person_add" : "login"}
+              </span>
+              <span>{loading ? "Processing..." : (isSignup ? "Create Free Account" : "Sign In to Esets")}</span>
             </button>
           </form>
 
-          {/* Toggle Login vs Signup */}
+          {/* Toggle Sign Up / Login */}
           <div className="pt-2 text-center">
             <button
               type="button"
@@ -218,11 +221,13 @@ export default function AuthModal({ isOpen, onClose }) {
                 setIsSignup(!isSignup);
                 setError("");
               }}
-              className="font-body-sm text-[12px] text-secondary font-bold hover:underline"
+              className="text-[12px] font-label-md text-on-surface-variant hover:text-primary transition"
             >
-              {isSignup 
-                ? "Already have an account? Sign In" 
-                : "Don't have an account? Create one for free"}
+              {isSignup ? (
+                <>Already registered? <strong className="text-secondary underline">Sign In</strong></>
+              ) : (
+                <>Don't have an account? <strong className="text-secondary underline">Post Property & Register Free</strong></>
+              )}
             </button>
           </div>
 
