@@ -6,7 +6,7 @@ import {
   analyzeLandmarksWithGemini, 
   DISTRICT_TOPOGRAPHICAL_DEFAULTS 
 } from "../services/landmarkRadarService";
-import { compressImageFile, detectRoomTypeWithAI } from "../services/imageAnalyzerService";
+import { compressImageFile, detectRoomTypeWithAI, applyWatermarkToCanvas } from "../services/imageAnalyzerService";
 
 export default function PostPropertyView({ onBack, onAddProperty }) {
   const { currentUser } = useAuth();
@@ -97,6 +97,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
   const [imageUploadError, setImageUploadError] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState("");
+  const [autoWatermark, setAutoWatermark] = useState(true);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -108,7 +109,10 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
     try {
       const newItems = [];
       for (const file of files.slice(0, 5 - imagesList.length)) {
-        const compressedDataUrl = await compressImageFile(file);
+        let processedDataUrl = await compressImageFile(file);
+        if (autoWatermark) {
+          processedDataUrl = await applyWatermarkToCanvas(processedDataUrl, "ESETS 0% BROKERAGE", locality || "FREEHOLD");
+        }
         let detectedTag = "Property View";
         try {
           const aiTag = await detectRoomTypeWithAI(compressedDataUrl);
@@ -117,7 +121,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
           // ignore
         }
         newItems.push({
-          url: compressedDataUrl,
+          url: processedDataUrl,
           tag: detectedTag,
           isCover: imagesList.length === 0 && newItems.length === 0
         });
@@ -702,6 +706,25 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                   <span className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
                     Select up to 5 photos • Automatic AI Room Detection & Compression
                   </span>
+                </label>
+
+                {/* Anti-Broker Fraud Watermark Protection Toggle */}
+                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-surface-container-low border border-surface-container cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={autoWatermark} 
+                    onChange={(e) => setAutoWatermark(e.target.checked)} 
+                    className="mt-0.5 h-4 w-4 rounded accent-primary cursor-pointer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="font-label-md text-label-md text-primary font-bold flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-secondary">verified_user</span>
+                      <span>Anti-Broker Fraud Watermarking</span>
+                    </span>
+                    <p className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
+                      Auto-embeds non-erasable "Esets 0% Brokerage • Verified Freehold" watermark stamp on all photos to prevent unauthorized broker scraping.
+                    </p>
+                  </div>
                 </label>
 
                 {imageUploadError && (

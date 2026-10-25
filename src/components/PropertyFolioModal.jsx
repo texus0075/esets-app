@@ -13,6 +13,11 @@ export default function PropertyFolioModal({
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [is360Active, setIs360Active] = useState(false);
   const [isMapInteractive, setIsMapInteractive] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [panoramaOffset, setPanoramaOffset] = useState(50);
+  const [isDraggingPanorama, setIsDraggingPanorama] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartOffset, setDragStartOffset] = useState(50);
   const landmarks = resolvePropertyLandmarks(property);
 
   // Fallback images if property has fewer images
@@ -83,58 +88,125 @@ export default function PropertyFolioModal({
 
           {/* Gallery & Media Hub */}
           <section className="relative w-full bg-primary-container overflow-hidden">
-            {/* Main Photo Showcase */}
+            {/* Main Photo Showcase & 360 Panoramic Virtual Tour */}
             <div className="relative w-full aspect-[16/11] bg-surface-dim overflow-hidden select-none">
-              <div 
-                className={`w-full h-full bg-cover bg-center transition-all duration-300 ${isSold ? "grayscale contrast-75 brightness-90" : ""}`}
-                style={{ backgroundImage: `url('${photos[activePhotoIdx]}')` }}
-              >
-                {/* Floating Verified Shield Badge */}
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-lowest/95 backdrop-blur-md text-primary shadow-md">
-                  <span className="material-symbols-outlined text-[16px] text-tertiary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    shield_with_heart
-                  </span>
-                  <span className="font-label-md text-label-md tracking-wide font-bold">
-                    Direct Deed Verified
-                  </span>
-                </div>
+              {is360Active ? (
+                /* Interactive 360 Pan Viewport */
+                <div 
+                  className="relative w-full h-full bg-black overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none flex items-center justify-center"
+                  onTouchStart={(e) => {
+                    setIsDraggingPanorama(true);
+                    setDragStartX(e.touches[0].clientX);
+                    setDragStartOffset(panoramaOffset);
+                  }}
+                  onTouchMove={(e) => {
+                    if (!isDraggingPanorama) return;
+                    const deltaX = e.touches[0].clientX - dragStartX;
+                    const newOffset = Math.max(0, Math.min(100, dragStartOffset - (deltaX / 2.5)));
+                    setPanoramaOffset(newOffset);
+                  }}
+                  onTouchEnd={() => setIsDraggingPanorama(false)}
+                  onMouseDown={(e) => {
+                    setIsDraggingPanorama(true);
+                    setDragStartX(e.clientX);
+                    setDragStartOffset(panoramaOffset);
+                  }}
+                  onMouseMove={(e) => {
+                    if (!isDraggingPanorama) return;
+                    const deltaX = e.clientX - dragStartX;
+                    const newOffset = Math.max(0, Math.min(100, dragStartOffset - (deltaX / 2.5)));
+                    setPanoramaOffset(newOffset);
+                  }}
+                  onMouseUp={() => setIsDraggingPanorama(false)}
+                  onMouseLeave={() => setIsDraggingPanorama(false)}
+                >
+                  <div 
+                    className="absolute inset-0 w-full h-full bg-no-repeat transition-all duration-75"
+                    style={{
+                      backgroundImage: `url('${photos[activePhotoIdx]}')`,
+                      backgroundSize: '250% 100%',
+                      backgroundPosition: `${panoramaOffset}% center`
+                    }}
+                  />
 
-                {/* 360 & Video Walkthrough Badges */}
-                <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                  <button 
-                    onClick={() => setIs360Active(!is360Active)}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full backdrop-blur-md text-surface shadow-md active:scale-95 transition-transform ${
-                      is360Active ? "bg-tertiary-container text-tertiary-fixed" : "bg-primary/80 text-surface"
-                    }`}
+                  {/* 360 HUD Angle & Exit Buttons */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md text-amber-400 font-code-spec text-[11px] font-bold z-10 border border-amber-500/30">
+                    <span className="material-symbols-outlined text-[15px]">explore</span>
+                    <span>360° Pan: {Math.round((panoramaOffset / 100) * 360)}° View</span>
+                  </div>
+
+                  <button
+                    onClick={() => setIs360Active(false)}
+                    className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md text-white font-code-spec text-[11px] font-bold z-10 hover:bg-black transition flex items-center gap-1 border border-white/20 active:scale-95"
                   >
-                    <span className="material-symbols-outlined text-[16px]">view_in_ar</span>
-                    <span className="font-code-spec text-[10px] uppercase font-semibold">360° Tour</span>
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <span>Exit 360°</span>
                   </button>
-                  {property.videoUrl && (
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-on-surface shadow-md">
-                      <span className="material-symbols-outlined text-[16px]">videocam</span>
+
+                  <div className="absolute bottom-3 inset-x-4 flex items-center justify-center z-10 pointer-events-none">
+                    <span className="px-3 py-1.5 rounded-full bg-black/80 backdrop-blur-md text-white font-label-md text-[11px] font-semibold flex items-center gap-1.5 shadow-lg border border-white/10">
+                      <span className="material-symbols-outlined text-[16px] text-amber-400">swipe</span>
+                      <span>Drag left or right to inspect 360° room</span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Standard Photo Showcase */
+                <div 
+                  className={`w-full h-full bg-cover bg-center transition-all duration-300 ${isSold ? "grayscale contrast-75 brightness-90" : ""}`}
+                  style={{ backgroundImage: `url('${photos[activePhotoIdx]}')` }}
+                >
+                  {/* Floating Verified Shield Badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-lowest/95 backdrop-blur-md text-primary shadow-md">
+                    <span className="material-symbols-outlined text-[16px] text-tertiary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      shield_with_heart
+                    </span>
+                    <span className="font-label-md text-label-md tracking-wide font-bold">
+                      Direct Deed Verified
+                    </span>
+                  </div>
+
+                  {/* 360 & Video Walkthrough Badges */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <button 
+                      onClick={() => setIs360Active(!is360Active)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full backdrop-blur-md text-surface shadow-md active:scale-95 transition-transform ${
+                        is360Active ? "bg-tertiary-container text-tertiary-fixed" : "bg-primary/80 text-surface"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">view_in_ar</span>
+                      <span className="font-code-spec text-[10px] uppercase font-semibold">360° Tour</span>
+                    </button>
+                    {property.videoUrl && (
+                      <button 
+                        onClick={() => setIsVideoModalOpen(true)}
+                        title="Watch Verified Video Tour"
+                        className="flex items-center justify-center w-7 h-7 rounded-full bg-surface-container-lowest/90 hover:bg-surface-dim backdrop-blur-md text-primary shadow-md active:scale-95 transition"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">videocam</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sold Out Diagonal Ribbon Overlay */}
+                  {isSold && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-primary/25">
+                      <div className="transform -rotate-12 bg-error text-on-error font-headline-sm text-[15px] sm:text-headline-sm font-bold tracking-widest px-6 py-2 shadow-2xl flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[22px]">verified</span>
+                        DEAL CLOSED • SOLD OUT
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {/* Sold Out Diagonal Ribbon Overlay */}
-                {isSold && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-primary/25">
-                    <div className="transform -rotate-12 bg-error text-on-error font-headline-sm text-[15px] sm:text-headline-sm font-bold tracking-widest px-6 py-2 shadow-2xl flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[22px]">verified</span>
-                      DEAL CLOSED • SOLD OUT
-                    </div>
+                  {/* Counter Indicator Overlay */}
+                  <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-primary/85 backdrop-blur-md text-surface font-code-spec text-code-spec font-medium">
+                    <span>{activePhotoIdx + 1} / {photos.length}</span> Photos
                   </div>
-                )}
 
-                {/* Counter Indicator Overlay */}
-                <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-primary/85 backdrop-blur-md text-surface font-code-spec text-code-spec font-medium">
-                  <span>{activePhotoIdx + 1} / {photos.length}</span> Photos
+                  {/* Subtle Gradient Scrim */}
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-primary/60 to-transparent pointer-events-none"></div>
                 </div>
-
-                {/* Subtle Gradient Scrim */}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-primary/60 to-transparent pointer-events-none"></div>
-              </div>
+              )}
             </div>
 
             {/* Thumbnails Scroller */}
@@ -484,6 +556,43 @@ export default function PropertyFolioModal({
           )}
         </div>
       </div>
+          {/* Video Walkthrough Modal */}
+      {isVideoModalOpen && property.videoUrl && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="relative w-full max-w-lg bg-surface-container-lowest rounded-2xl overflow-hidden shadow-2xl border border-surface-container">
+            <div className="p-3 bg-surface-container flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-[20px]">videocam</span>
+                <span className="font-label-lg font-bold text-primary">Verified On-Site Video Walkthrough</span>
+              </div>
+              <button
+                onClick={() => setIsVideoModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-dim flex items-center justify-center text-primary transition"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div className="relative w-full aspect-video bg-black flex items-center justify-center">
+              <video 
+                src={property.videoUrl} 
+                controls 
+                autoPlay 
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <div className="p-3 bg-surface-container-low flex items-center justify-between">
+              <span className="font-code-spec text-[11px] text-secondary">
+                0% Brokerage Direct Inspection Footage
+              </span>
+              <span className="font-code-spec text-[10px] text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
+                Verified Video
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 /**
- * Image Processing, Compression & AI Room Detection Service
+ * Image Processing, Compression, AI Room Detection & Anti-Theft Watermarking Service
  * 
+ * Category 2 / Media Engine:
  * 1. Client-side canvas compression: Resizes 10MB camera files to lightweight WebP/JPEG data URLs.
- * 2. Multi-Key Gemini Vision AI with internal if-else failover to detect room types (Living Room, Bedroom, Kitchen, Balcony).
- * 3. Graceful fallback when offline or without keys.
+ * 2. Canvas Anti-Theft Watermarking: Embeds non-erasable "Esets 0% Brokerage" watermark to protect photos from brokers.
+ * 3. Multi-Key Gemini Vision AI with internal if-else failover to detect room types.
  */
 
 export function compressImageFile(file, maxWidth = 1280, maxHeight = 960, quality = 0.82) {
@@ -48,6 +49,64 @@ export function compressImageFile(file, maxWidth = 1280, maxHeight = 960, qualit
     };
     reader.onerror = () => reject(new Error("Failed to read file."));
     reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Anti-Broker Fraud Watermarking Engine
+ * Stamps permanent "Esets 0% Brokerage" credentials onto image pixels
+ */
+export function applyWatermarkToCanvas(dataUrl, watermarkText = "ESETS 0% BROKERAGE", specId = "FREEHOLD DEED") {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+
+      // Draw original image
+      ctx.drawImage(img, 0, 0);
+
+      // Dynamic font sizing based on image resolution
+      const fontSize = Math.max(13, Math.round(canvas.width / 34));
+      ctx.font = `bold ${fontSize}px sans-serif`;
+
+      // 1. Bottom-right Official Verification Watermark Stamp
+      const stampText = `${watermarkText} • ${specId}`;
+      const textMetrics = ctx.measureText(stampText);
+      const textWidth = textMetrics.width;
+      const padding = 10;
+      const x = canvas.width - textWidth - padding * 2 - 14;
+      const y = canvas.height - fontSize - padding * 2;
+
+      // Dark translucent badge background
+      ctx.fillStyle = "rgba(18, 22, 16, 0.75)";
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(x, y - fontSize / 2, textWidth + padding * 2, fontSize + padding, 8);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x, y - fontSize / 2, textWidth + padding * 2, fontSize + padding);
+      }
+
+      // Golden amber security text
+      ctx.fillStyle = "#E88A1A";
+      ctx.fillText("🛡️ " + stampText, x + padding, y + fontSize / 2 + 1);
+
+      // 2. Subtle center diagonal watermark against broker scraping
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(-Math.PI / 7);
+      ctx.font = `bold ${Math.round(canvas.width / 24)}px sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+      ctx.textAlign = "center";
+      ctx.fillText("ESETS C2C • DIRECT OWNER LISTING", 0, 0);
+      ctx.restore();
+
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.src = dataUrl;
   });
 }
 
@@ -120,5 +179,5 @@ export async function detectRoomTypeWithAI(dataUrl) {
     }
   }
 
-  return null;
+  return "Property View";
 }
