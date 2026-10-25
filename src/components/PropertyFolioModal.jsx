@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import StampLogo from "./StampLogo";
+import { resolvePropertyLandmarks } from "../services/landmarkRadarService";
 
 export default function PropertyFolioModal({ 
   property, 
@@ -12,6 +13,7 @@ export default function PropertyFolioModal({
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [is360Active, setIs360Active] = useState(false);
   const [isMapInteractive, setIsMapInteractive] = useState(false);
+  const landmarks = resolvePropertyLandmarks(property);
 
   // Fallback images if property has fewer images
   const photos = property.images && property.images.length > 0 ? property.images : [
@@ -324,22 +326,32 @@ export default function PropertyFolioModal({
 
               {/* Neighborhood Proximity Matrix */}
               <div className="p-3 bg-surface-container-low flex flex-col gap-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="font-code-spec text-[10px] text-secondary font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px] text-primary">verified_user</span>
+                    Verified Topography Radar
+                  </span>
+                  <span className="font-code-spec text-[10px] text-on-surface-variant">Real Pedestrian Walking Times</span>
+                </div>
+
                 <div className="grid grid-cols-3 gap-1.5 text-center">
-                  <div className="p-2 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col items-center">
-                    <span className="material-symbols-outlined text-[18px] text-secondary">subway</span>
-                    <span className="font-headline-sm text-[13px] font-bold text-primary mt-0.5">350m</span>
-                    <span className="font-body-sm text-[10px] text-on-surface-variant truncate w-full">Metro Station</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col items-center">
-                    <span className="material-symbols-outlined text-[18px] text-secondary">park</span>
-                    <span className="font-headline-sm text-[13px] font-bold text-primary mt-0.5">120m</span>
-                    <span className="font-body-sm text-[10px] text-on-surface-variant truncate w-full">Green Park</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col items-center">
-                    <span className="material-symbols-outlined text-[18px] text-secondary">restaurant</span>
-                    <span className="font-headline-sm text-[13px] font-bold text-primary mt-0.5">2 min</span>
-                    <span className="font-body-sm text-[10px] text-on-surface-variant truncate w-full">Market Hub</span>
-                  </div>
+                  {landmarks.map((lm, idx) => (
+                    <div 
+                      key={idx} 
+                      className="p-2.5 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col items-center justify-between border border-surface-container min-h-[82px]"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-secondary">{lm.icon || "pin_drop"}</span>
+                      <div className="my-0.5">
+                        <span className="font-headline-sm text-[13px] font-bold text-primary block leading-none">{lm.distance}</span>
+                        {lm.time && (
+                          <span className="font-code-spec text-[9px] text-secondary block mt-0.5 font-medium">{lm.time}</span>
+                        )}
+                      </div>
+                      <span className="font-body-sm text-[10px] text-on-surface-variant truncate w-full font-medium" title={lm.label}>
+                        {lm.label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 <a 

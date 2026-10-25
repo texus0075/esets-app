@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { keyPool, analyzeLandmarksWithGemini } from "../services/landmarkRadarService";
 
 export default function SettingsView({
   theme,
@@ -10,7 +11,47 @@ export default function SettingsView({
   onOpenAuthModal,
   onLogout
 }) {
-  const [activeCategory, setActiveCategory] = useState("theme"); // 'theme' | 'shield' | 'geo' | 'device' | 'plans'
+  const [activeCategory, setActiveCategory] = useState("theme"); // 'theme' | 'shield' | 'geo' | 'device' | 'plans' | 'ai_keys'
+
+  // Gemini Multi-Key Pool State
+  const [geminiKeysInput, setGeminiKeysInput] = useState(() => {
+    return keyPool.keys.join("\n");
+  });
+  const [testResult, setTestResult] = useState("");
+  const [isTestingKey, setIsTestingKey] = useState(false);
+  const [saveKeysSuccess, setSaveKeysSuccess] = useState(false);
+
+  const handleSaveKeys = () => {
+    const raw = geminiKeysInput
+      .split(/[\n,]/)
+      .map(k => k.trim())
+      .filter(Boolean);
+    keyPool.saveKeys(raw);
+    setSaveKeysSuccess(true);
+    setTimeout(() => setSaveKeysSuccess(false), 3000);
+  };
+
+  const handleTestKeyPool = async () => {
+    setIsTestingKey(true);
+    setTestResult("");
+    try {
+      const stats = keyPool.getKeyStats();
+      if (!stats.hasKeys) {
+        setTestResult("⚠️ No keys saved yet. Paste at least 1 key from Google AI Studio below.");
+        return;
+      }
+      const res = await analyzeLandmarksWithGemini("Indiranagar", "Indiranagar BLR", "Karnataka");
+      if (res && (res.metro || res.park)) {
+        setTestResult(`✓ Active Key #${stats.activeIndex + 1} Connected Successfully! Model: gemini-2.5-flash.`);
+      } else {
+        setTestResult("⚠️ Response received. Key pool is active with auto-failover.");
+      }
+    } catch (e) {
+      setTestResult(`❌ Error testing key: ${e.message}`);
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
   const [radiusKm, setRadiusKm] = useState(5);
   const [callingHours, setCallingHours] = useState("09:00 AM – 08:30 PM");
   const [numberMasking, setNumberMasking] = useState(true);
@@ -139,6 +180,7 @@ export default function SettingsView({
       <div className="flex items-center gap-2 overflow-x-auto py-3 no-scrollbar">
         {[
           { id: "theme", label: "🎨 Theme Mode" },
+          { id: "ai_keys", label: "🤖 Gemini Multi-Key Pool" },
           { id: "shield", label: "🛑 'Sold It' Call Shield" },
           { id: "geo", label: "📍 Location & Radius" },
           { id: "device", label: "📱 Real Device Security" },
@@ -489,6 +531,103 @@ export default function SettingsView({
               <span className="material-symbols-outlined text-[18px]">fact_check</span>
               <span>Open Interactive 7-Step Checklist</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 6: GEMINI 2.5 MULTI-KEY POOL */}
+      {activeCategory === "ai_keys" && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div>
+            <h3 className="font-headline-sm text-headline-sm text-primary font-bold">
+              Gemini 2.5 Flash Multi-Key Engine
+            </h3>
+            <p className="font-body-sm text-[12px] text-on-surface-variant mt-1">
+              Connect up to 10 free API keys from Google AI Studio. If one key hits rate limits (429), Esets instantly fails over to the next key automatically.
+            </p>
+          </div>
+
+          {/* Key Pool Health & Metrics */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-3 rounded-xl bg-surface-container border border-surface-container flex flex-col items-center text-center">
+              <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Model Engine</span>
+              <span className="font-headline-sm text-[13px] font-bold text-primary mt-1">v2.5 Flash</span>
+              <span className="font-code-spec text-[9px] text-secondary">Ultra Fast</span>
+            </div>
+            <div className="p-3 rounded-xl bg-surface-container border border-surface-container flex flex-col items-center text-center">
+              <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Key Pool</span>
+              <span className="font-headline-sm text-[13px] font-bold text-primary mt-1">
+                {keyPool.keys.length} Active
+              </span>
+              <span className="font-code-spec text-[9px] text-secondary">
+                {keyPool.keys.length > 0 ? "Failover Ready" : "Standby"}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-surface-container border border-surface-container flex flex-col items-center text-center">
+              <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">OpenStreetMap</span>
+              <span className="font-headline-sm text-[13px] font-bold text-primary mt-1">100% Free</span>
+              <span className="font-code-spec text-[9px] text-secondary">Zero Key Needed</span>
+            </div>
+          </div>
+
+          {/* Keys Input Card */}
+          <div className="p-4 rounded-xl bg-surface-container border border-surface-container space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="font-label-md text-label-md font-bold text-primary flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-secondary">vpn_key</span>
+                <span>Google AI Studio API Keys (Paste 1 to 10 Keys)</span>
+              </label>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-code-spec text-[10.5px] text-secondary hover:underline flex items-center gap-0.5"
+              >
+                <span>Get Free Keys</span>
+                <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+              </a>
+            </div>
+
+            <textarea
+              rows={4}
+              value={geminiKeysInput}
+              onChange={(e) => setGeminiKeysInput(e.target.value)}
+              placeholder="Paste your Gemini API keys here (one key per line, or separated by commas)...&#10;AIzaSy...key1&#10;AIzaSy...key2&#10;AIzaSy...key3"
+              className="w-full bg-surface-container-low text-primary font-mono text-[11px] p-3 rounded-xl focus:outline-none border border-surface-container placeholder:text-on-surface-variant/50 resize-none"
+            />
+
+            {testResult && (
+              <div className="p-2.5 rounded-lg bg-surface-container-low border border-surface-container font-code-spec text-[11px] text-primary">
+                {testResult}
+              </div>
+            )}
+
+            {saveKeysSuccess && (
+              <div className="p-2 rounded-lg bg-primary-container text-secondary-container font-code-spec text-[11px] font-bold text-center">
+                ✓ Keys Saved into Local Secure Storage & Multi-Key Pool Activated!
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleSaveKeys}
+                className="flex-1 py-2.5 rounded-xl bg-primary-container text-secondary-container font-label-md text-label-md font-bold hover:brightness-110 active:scale-95 transition shadow-xs"
+              >
+                Save & Activate Key Pool
+              </button>
+              <button
+                type="button"
+                onClick={handleTestKeyPool}
+                disabled={isTestingKey}
+                className="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-dim text-primary font-label-md text-label-md font-bold active:scale-95 transition flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {isTestingKey ? "sync" : "network_check"}
+                </span>
+                <span>{isTestingKey ? "Testing..." : "Test Connection"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -36,6 +36,11 @@ export const INITIAL_PROPERTIES = [
     furnishing: "Semi-Furnished (Modular Italian)",
     floorLevel: "2nd of 4 Floors",
     coords: "28.5494° N, 77.2348° E",
+    landmarks: [
+      { type: "metro", label: "Greater Kailash Metro (Magenta)", distance: "420m", time: "5 min walk", icon: "subway" },
+      { type: "park", label: "M-Block Municipal Park", distance: "150m", time: "2 min walk", icon: "park" },
+      { type: "market", label: "GK-1 M-Block Market", distance: "250m", time: "3 min walk", icon: "storefront" }
+    ],
     callingHours: "9:00 AM – 8:30 PM",
     postedAt: "Listed 25 mins ago",
     views: 84
@@ -76,6 +81,11 @@ export const INITIAL_PROPERTIES = [
     furnishing: "Fully Fitted Designer",
     floorLevel: "24th of 26 Floors",
     coords: "28.4350° N, 77.1050° E",
+    landmarks: [
+      { type: "metro", label: "Sector 53-54 Rapid Metro", distance: "650m", time: "7 min walk", icon: "subway" },
+      { type: "park", label: "Aravali Bio Diversity Park", distance: "1.4km", time: "4 min drive", icon: "park" },
+      { type: "market", label: "South Point Mall & Galleria", distance: "500m", time: "5 min walk", icon: "storefront" }
+    ],
     callingHours: "9:00 AM – 8:00 PM",
     postedAt: "Listed Today, 11:30 AM",
     views: 192
@@ -115,6 +125,11 @@ export const INITIAL_PROPERTIES = [
     furnishing: "Fully Furnished",
     floorLevel: "14th of 18 Floors",
     coords: "19.0600° N, 72.8258° E",
+    landmarks: [
+      { type: "metro", label: "Khar Road / Bandra Local Station", distance: "850m", time: "10 min walk", icon: "subway" },
+      { type: "park", label: "Jogger's Park & Carter Road", distance: "350m", time: "4 min walk", icon: "park" },
+      { type: "market", label: "Pali Hill & Linking Road", distance: "300m", time: "3 min walk", icon: "storefront" }
+    ],
     callingHours: "Calls Frozen by Owner",
     postedAt: "DEAL CLOSED TODAY • SOLD OUT",
     views: 610
@@ -154,6 +169,11 @@ export const INITIAL_PROPERTIES = [
     furnishing: "Semi-Furnished",
     floorLevel: "3rd of 5 Floors",
     coords: "12.9784° N, 77.6408° E",
+    landmarks: [
+      { type: "metro", label: "Indiranagar Metro (Purple Line)", distance: "350m", time: "4 min walk", icon: "subway" },
+      { type: "park", label: "Defence Colony Children Park", distance: "180m", time: "2 min walk", icon: "park" },
+      { type: "market", label: "100ft Road High Street & CMH", distance: "200m", time: "3 min walk", icon: "storefront" }
+    ],
     callingHours: "10:00 AM – 7:30 PM",
     postedAt: "Listed 1 hour ago",
     views: 145
@@ -193,6 +213,11 @@ export const INITIAL_PROPERTIES = [
     furnishing: "Semi-Furnished",
     floorLevel: "8th of 22 Floors",
     coords: "28.4385° N, 77.4983° E",
+    landmarks: [
+      { type: "metro", label: "Sector 148 Metro (Aqua Line)", distance: "800m", time: "9 min walk", icon: "subway" },
+      { type: "park", label: "Shaheed Bhagat Singh City Park", distance: "300m", time: "3 min walk", icon: "park" },
+      { type: "market", label: "Advant Navis Commercial Hub", distance: "1.2km", time: "3 min drive", icon: "storefront" }
+    ],
     callingHours: "9:30 AM – 8:00 PM",
     postedAt: "Listed 2 hours ago",
     views: 98
@@ -232,6 +257,11 @@ export const INITIAL_PROPERTIES = [
     furnishing: "Luxury Unfurnished",
     floorLevel: "Ground + 2 Floors",
     coords: "17.4319° N, 78.4073° E",
+    landmarks: [
+      { type: "metro", label: "Peddamma Gudi Metro (Blue Line)", distance: "700m", time: "8 min walk", icon: "subway" },
+      { type: "park", label: "KBR National Park", distance: "950m", time: "10 min walk", icon: "park" },
+      { type: "market", label: "Road No. 36 Luxury Retail & Dining", distance: "350m", time: "4 min walk", icon: "storefront" }
+    ],
     callingHours: "9:00 AM – 7:30 PM",
     postedAt: "Listed Today, 8:15 AM",
     views: 230
