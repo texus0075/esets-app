@@ -3,10 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Native Smooth Mobile Viewport without Touch-Lock -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Esets - Direct C2C Real Estate Marketplace</title>
-    <meta name="description" content="Esets - Direct Customer-to-Customer Real Estate Marketplace. 0% Brokerage, 100% Direct Verified Owner Dealing, and 'Sold It' Call Shield." />
+    <meta name="description" content="Buy & Sell Real Estate Directly with Owners — ₹0 Brokerage, Zero Commission, and 'Sold It' Call Shield." />
     
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1B2416" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Esets" />
+
     <!-- Google Fonts: Space Grotesk, Manrope, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,5 +28,14 @@
   <body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.log('SW registration note:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

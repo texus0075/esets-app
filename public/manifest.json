@@ -1,0 +1,19 @@
+{
+  "short_name": "Esets",
+  "name": "Esets - Direct C2C Real Estate Marketplace",
+  "description": "Buy & Sell Real Estate Directly with Owners — ₹0 Brokerage, Zero Commission, and 'Sold It' Call Shield.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FAF9F6",
+  "theme_color": "#1B2416",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/"
+}

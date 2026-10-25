@@ -80,18 +80,21 @@
 }
 
 @layer base {
-  html, body {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    height: 100%;
   }
 
   body {
-    overscroll-behavior-y: none;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
-    font-family: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
   * {
@@ -113,60 +116,59 @@
   display: none;
 }
 
-/* Typography Scale Helpers */
+/* Fluid Typography Helpers */
 .font-headline-xl {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 40px;
-  line-height: 48px;
-  letter-spacing: -0.03em;
-  font-weight: 600;
+  font-size: 36px;
+  line-height: 44px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
 .font-headline-xl-mobile {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 30px;
-  line-height: 36px;
+  font-size: 26px;
+  line-height: 32px;
   letter-spacing: -0.02em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .font-headline-lg {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 32px;
-  line-height: 40px;
+  font-size: 28px;
+  line-height: 36px;
   letter-spacing: -0.02em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .font-headline-lg-mobile {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 24px;
-  line-height: 30px;
-  letter-spacing: -0.02em;
-  font-weight: 600;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+  font-weight: 700;
 }
 
 .font-headline-md {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 22px;
-  line-height: 28px;
+  font-size: 20px;
+  line-height: 26px;
   letter-spacing: -0.01em;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .font-headline-sm {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 18px;
-  line-height: 24px;
+  font-size: 17px;
+  line-height: 22px;
   letter-spacing: 0em;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .font-body-lg {
   font-family: "Manrope", sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  line-height: 22px;
   font-weight: 400;
 }
 
@@ -174,31 +176,27 @@
   font-family: "Manrope", sans-serif;
   font-size: 14px;
   line-height: 20px;
-  letter-spacing: 0em;
   font-weight: 400;
 }
 
 .font-body-sm {
   font-family: "Manrope", sans-serif;
   font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.01em;
+  line-height: 17px;
   font-weight: 400;
 }
 
 .font-label-lg {
   font-family: "Manrope", sans-serif;
   font-size: 13px;
-  line-height: 16px;
-  letter-spacing: 0.02em;
+  line-height: 17px;
   font-weight: 600;
 }
 
 .font-label-md {
   font-family: "Manrope", sans-serif;
   font-size: 11px;
-  line-height: 14px;
-  letter-spacing: 0.03em;
+  line-height: 15px;
   font-weight: 600;
 }
 
@@ -210,7 +208,7 @@
   font-weight: 500;
 }
 
-/* Material Symbols sizing */
+/* Material Symbols */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   vertical-align: middle;
