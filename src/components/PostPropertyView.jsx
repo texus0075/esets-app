@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import StampLogo from "./StampLogo";
 import { useAuth } from "../context/AuthContext";
 import { 
   fetchOSMLandmarks, 
@@ -155,11 +156,7 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
             >
               <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
             </button>
-            <img 
-              alt="Esets Brand Logo" 
-              className="h-7 w-auto object-contain" 
-              src="https://lh3.googleusercontent.com/aida/AEtjO1XQuJitb0ZaeFEpPEE7bRlZ8NHRS7l9MYJZoOF-4ktjwKDEJaHFmthMrRi92yLk9N3Z_48CDmX8S0aNhbjPx79Oox_CXu8iXG0I0F0nYUUoAHRKfDRmq8MmEd4saiOw9hz4vIGfVCc9UQd2eaVsBqFePN8JD4V1o23q2ytQRmBCtPEieHEiRJM0QLn8TUYXh_dkTv2zmdbl9HfqZKnj5N1VJWXJbnT6sQld12Or6mg"
-            />
+            <StampLogo className="w-7 h-7" showText={false} />
             <h1 className="font-headline-sm text-headline-sm text-primary tracking-tight truncate max-w-[160px]">
               Post Free
             </h1>
