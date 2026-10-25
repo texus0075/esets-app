@@ -13,28 +13,29 @@ export default function ExploreRadarCard({ gpsData }) {
             </span>
           </div>
           <span className="font-code-spec text-[10px] text-secondary bg-surface-container-lowest px-2 py-0.5 rounded font-bold">
-            {gpsData ? RADAR_CONTENT.gpsActiveStatus : RADAR_CONTENT.defaultStatus}
+            {gpsData ? "📍 GPS Locked" : "GPS Standby"}
           </span>
         </div>
         
         <p className="font-body-sm text-body-sm text-on-surface-variant">
           {gpsData 
-            ? `Current coordinates: ${gpsData.formatted} (accuracy ±${gpsData.accuracy}m). Distances calibrated to real physical topography.`
-            : RADAR_CONTENT.defaultDescription
+            ? `स्थान: ${gpsData.fullName || gpsData.district || 'Current Location'} (${gpsData.formatted})। आपकी सटीक दूरी के अनुसार रियल इंफ्रास्ट्रक्चर की गणना की जाती है।`
+            : "ऊपर दिए गए 'Auto GPS' बटन पर क्लिक करके अपने फोन से सटीक लोकेशन और नजदीकी जरूरी सुविधाएं स्कैन करें।"
           }
         </p>
 
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {RADAR_CONTENT.landmarks.map(lm => (
-            <span 
-              key={lm.label}
-              className="px-2.5 py-1 rounded bg-surface-container-lowest font-code-spec text-[11px] text-on-surface flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-[13px] text-secondary">{lm.icon}</span>
-              <span>{lm.label}: {lm.distance}</span>
+        {gpsData && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <span className="px-2.5 py-1 rounded bg-surface-container-lowest font-code-spec text-[11px] text-on-surface flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px] text-secondary">my_location</span>
+              <span>जिला: {gpsData.district || "Local District"}</span>
             </span>
-          ))}
-        </div>
+            <span className="px-2.5 py-1 rounded bg-surface-container-lowest font-code-spec text-[11px] text-on-surface flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px] text-secondary">gps_fixed</span>
+              <span>शुद्धता: ±{gpsData.accuracy || 15}m</span>
+            </span>
+          </div>
+        )}
       </div>
     </section>
   );

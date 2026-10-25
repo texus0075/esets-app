@@ -11,28 +11,29 @@ import {
   onSnapshot 
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { INITIAL_PROPERTIES } from "../data/mockData";
 
 const COLLECTION_NAME = "properties";
-const LOCAL_STORAGE_KEY = "esets_properties_cache_v3";
+const LOCAL_STORAGE_KEY = "esets_properties_cache_real";
 
 export const getCachedProperties = () => {
   try {
+    // Purge deprecated legacy dummy caches
     localStorage.removeItem("esets_properties_cache");
     localStorage.removeItem("esets_properties_cache_v2");
+    localStorage.removeItem("esets_properties_cache_v3");
+    localStorage.removeItem("esets_custom_properties");
 
     const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(p => p.id === "prop-rajsamand-dhoinda")) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch (e) {
     console.error("Local storage read error", e);
   }
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_PROPERTIES));
-  return INITIAL_PROPERTIES;
+  return [];
 };
 
 export const saveCachedProperties = (props) => {
@@ -45,30 +46,23 @@ export const saveCachedProperties = (props) => {
 
 /**
  * Real-Time Live Firestore Listener (onSnapshot)
- * Instantly broadcasts additions, price changes, and 'Sold It' flips across all devices
+ * Live synchronization across all devices and direct owners
  */
 export const subscribeToProperties = (onUpdate) => {
   try {
     const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const firestoreItems = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+      const firestoreItems = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-        // Merge firestore live items with initial verified seed baseline
-        const firestoreIds = new Set(firestoreItems.map(p => p.id));
-        const merged = [...firestoreItems, ...INITIAL_PROPERTIES.filter(p => !firestoreIds.has(p.id))];
-
-        saveCachedProperties(merged);
-        if (onUpdate) onUpdate(merged);
-      } else {
-        const cached = getCachedProperties();
-        if (onUpdate) onUpdate(cached);
-      }
+      saveCachedProperties(firestoreItems);
+      if (onUpdate) onUpdate(firestoreItems);
     }, (error) => {
-      console.warn("Firestore realtime live sync warning (using cached database):", error.message);
+      console.warn("Firestore sync warning (using cached database):", error.message);
+      const cached = getCachedProperties();
+      if (onUpdate) onUpdate(cached);
     });
     return unsubscribe;
   } catch (err) {
@@ -81,26 +75,22 @@ export const fetchProperties = async () => {
   try {
     const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      const firestoreIds = new Set(items.map(p => p.id));
-      const merged = [...items, ...INITIAL_PROPERTIES.filter(p => !firestoreIds.has(p.id))];
-      saveCachedProperties(merged);
-      return merged;
-    }
+    const items = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    saveCachedProperties(items);
+    return items;
   } catch (error) {
-    console.warn("Firestore fetch error, falling back to local database:", error.message);
+    console.warn("Firestore fetch error:", error.message);
+    return getCachedProperties();
   }
-  return getCachedProperties();
 };
 
 export const createProperty = async (propertyData, userId) => {
   const newProp = {
     ...propertyData,
-    userId: userId || "guest-owner",
+    userId: userId || "direct-owner",
     createdAt: new Date().toISOString(),
     isSold: false,
     views: 1,
@@ -115,7 +105,7 @@ export const createProperty = async (propertyData, userId) => {
     newProp.id = docRef.id;
   } catch (error) {
     console.warn("Firestore write error, saving locally:", error.message);
-    newProp.id = "local-" + Date.now();
+    newProp.id = "prop-" + Date.now();
   }
 
   const cached = getCachedProperties();
@@ -128,7 +118,7 @@ export const toggleSoldStatus = async (propertyId, currentStatus) => {
   const newStatus = !currentStatus;
 
   try {
-    if (!propertyId.startsWith("local-") && !propertyId.startsWith("prop-")) {
+    if (!propertyId.startsWith("local-") && !propertyId.startsWith("prop-temp-")) {
       const docRef = doc(db, COLLECTION_NAME, propertyId);
       await updateDoc(docRef, {
         isSold: newStatus,
@@ -152,7 +142,7 @@ export const toggleSoldStatus = async (propertyId, currentStatus) => {
 
 export const deleteProperty = async (propertyId) => {
   try {
-    if (!propertyId.startsWith("local-") && !propertyId.startsWith("prop-")) {
+    if (!propertyId.startsWith("local-") && !propertyId.startsWith("prop-temp-")) {
       const docRef = doc(db, COLLECTION_NAME, propertyId);
       await deleteDoc(docRef);
     }

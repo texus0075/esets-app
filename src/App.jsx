@@ -63,20 +63,20 @@ export default function App() {
   // Persistent Saved Property IDs (Bookmarks)
   const [savedIds, setSavedIds] = useState(() => {
     try {
-      const stored = localStorage.getItem("esets_saved_ids");
-      return stored ? JSON.parse(stored) : ["prop-delhi-gk1", "prop-ggn-golfcourse"];
+      const stored = localStorage.getItem("esets_saved_ids_real");
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return ["prop-delhi-gk1", "prop-ggn-golfcourse"];
+      return [];
     }
   });
 
   // Persistent User's Owned Property IDs
   const [myPropertyIds, setMyPropertyIds] = useState(() => {
     try {
-      const stored = localStorage.getItem("esets_my_property_ids");
-      return stored ? JSON.parse(stored) : ["prop-rajsamand-dhoinda"];
+      const stored = localStorage.getItem("esets_my_property_ids_real");
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return ["prop-rajsamand-dhoinda"];
+      return [];
     }
   });
 
@@ -145,11 +145,11 @@ export default function App() {
   }, [isGlobalCallShieldActive]);
 
   useEffect(() => {
-    localStorage.setItem("esets_saved_ids", JSON.stringify(savedIds));
+    localStorage.setItem("esets_saved_ids_real", JSON.stringify(savedIds));
   }, [savedIds]);
 
   useEffect(() => {
-    localStorage.setItem("esets_my_property_ids", JSON.stringify(myPropertyIds));
+    localStorage.setItem("esets_my_property_ids_real", JSON.stringify(myPropertyIds));
   }, [myPropertyIds]);
 
   useEffect(() => {
@@ -221,8 +221,8 @@ export default function App() {
     const payload = {
       ...newProperty,
       postedAt: "Listed Just now",
-      sellerName: currentUser?.displayName || newProperty.sellerName || "Mahipal Singh Sisodia",
-      sellerPhone: currentUser?.phoneNumber || newProperty.sellerPhone || "+91 98290 41188",
+      sellerName: currentUser?.displayName || newProperty.sellerName || "प्रॉपर्टी ओनर",
+      sellerPhone: currentUser?.phoneNumber || newProperty.sellerPhone || "",
       sellerType: "Verified Direct Owner",
       verifiedOwner: true
     };

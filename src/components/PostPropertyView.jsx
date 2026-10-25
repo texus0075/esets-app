@@ -86,12 +86,12 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
   const [imageUploadError, setImageUploadError] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState("");
-  const [videoUrl, setVideoUrl] = useState("https://upload.wikimedia.org/wikipedia/commons/b/b8/Majestic_Residence_Signature_Villa_Under_Construction.webm");
+  const [videoUrl, setVideoUrl] = useState("");
   const [autoWatermark, setAutoWatermark] = useState(true);
 
   // STEP 3 OWNER DETAILS
-  const [sellerName, setSellerName] = useState(currentUser?.displayName || "Mahipal Singh Sisodia");
-  const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "+91 98290 41188");
+  const [sellerName, setSellerName] = useState(currentUser?.displayName || "");
+  const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "");
   const [callingHours, setCallingHours] = useState("8:30 AM – 8:30 PM");
   const [agreeTerms, setAgreeTerms] = useState(true);
 

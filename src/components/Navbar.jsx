@@ -73,11 +73,17 @@ export default function Navbar({
               className="relative flex items-center justify-center p-0.5 rounded-full hover:ring-2 hover:ring-secondary-container transition-all"
               title={`Logged in as ${currentUser.displayName}`}
             >
-              <img 
-                alt={currentUser.displayName || "User"} 
-                className="w-8 h-8 rounded-full object-cover shadow-xs ring-1 ring-secondary-container/40" 
-                src={currentUser.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"}
-              />
+              {currentUser.photoURL ? (
+                <img 
+                  alt={currentUser.displayName || "User"} 
+                  className="w-8 h-8 rounded-full object-cover shadow-xs ring-1 ring-secondary-container/40" 
+                  src={currentUser.photoURL}
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-fixed font-bold text-[13px] flex items-center justify-center shadow-xs ring-1 ring-secondary-container/40">
+                  {(currentUser.displayName || "U").charAt(0).toUpperCase()}
+                </div>
+              )}
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-tertiary-fixed-dim" title="Direct Owner Verified"></span>
               </span>
@@ -85,9 +91,10 @@ export default function Navbar({
           ) : (
             <button
               onClick={onOpenAuthModal}
-              className="px-2.5 py-1 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-[11px] font-bold shadow-xs active:scale-95 transition"
+              className="px-3 py-1.5 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-[12px] font-bold shadow-xs active:scale-95 transition flex items-center gap-1"
             >
-              Sign In
+              <span className="material-symbols-outlined text-[15px]">person</span>
+              <span>Login</span>
             </button>
           )}
         </div>

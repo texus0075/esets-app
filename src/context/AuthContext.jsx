@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
@@ -14,23 +14,22 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
+  // Purge legacy fake dummy user keys
+  useEffect(() => {
+    localStorage.removeItem("esets_user");
+    localStorage.removeItem("esets_user_v2");
+    localStorage.removeItem("esets_user_v3");
+  }, []);
+
+  // Real User State (null by default if guest / unauthenticated)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const savedUser = localStorage.getItem("esets_user_v3");
-      if (savedUser) return JSON.parse(savedUser);
+      const stored = localStorage.getItem("esets_auth_user_real");
+      if (stored) return JSON.parse(stored);
     } catch {
       // ignore
     }
-    // Clean default verified owner profile
-    return {
-      uid: "user-owner-mahipal",
-      displayName: "Mahipal Singh Sisodia",
-      email: "mahipal.sisodia@esets.in",
-      phoneNumber: "+91 98290 41188",
-      photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-      role: "owner",
-      verified: true
-    };
+    return null;
   });
 
   const [loading, setLoading] = useState(false);
@@ -44,139 +43,99 @@ export const AuthProvider = ({ children }) => {
           const formatted = {
             uid: user.uid,
             email: user.email,
-            displayName: user.displayName || user.email?.split("@")[0] || "Verified Owner",
-            photoURL: user.photoURL || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-            phoneNumber: user.phoneNumber || "+91 98290 41188",
+            displayName: user.displayName || user.email?.split("@")[0] || "Property Owner",
+            photoURL: user.photoURL || null,
+            phoneNumber: user.phoneNumber || null,
             role: "owner",
             verified: true
           };
           setCurrentUser(formatted);
-          localStorage.setItem("esets_user_v3", JSON.stringify(formatted));
+          localStorage.setItem("esets_auth_user_real", JSON.stringify(formatted));
         }
       });
       return unsubscribe;
     } catch (e) {
-      console.warn("Firebase Auth listener initialized with local session:", e);
+      console.warn("Firebase Auth listener note:", e);
     }
   }, []);
 
   // Email / Password Signup
   const signup = async (email, password, displayName, phone) => {
-    try {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
-      if (displayName) {
-        await updateProfile(res.user, { displayName });
-      }
-      const newUser = {
-        uid: res.user.uid,
-        email: res.user.email,
-        displayName: displayName || email.split("@")[0],
-        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: phone || "+91 98290 41188",
-        role: "owner",
-        verified: true
-      };
-      setCurrentUser(newUser);
-      localStorage.setItem("esets_user_v3", JSON.stringify(newUser));
-      return newUser;
-    } catch (firebaseErr) {
-      console.warn("Firebase signup note, fallback to secure local session:", firebaseErr);
-      const fallbackUser = {
-        uid: `user-${Date.now()}`,
-        email: email,
-        displayName: displayName || email.split("@")[0],
-        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: phone || "+91 98290 41188",
-        role: "owner",
-        verified: true
-      };
-      setCurrentUser(fallbackUser);
-      localStorage.setItem("esets_user_v3", JSON.stringify(fallbackUser));
-      return fallbackUser;
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+    if (displayName) {
+      await updateProfile(res.user, { displayName });
     }
+    const newUser = {
+      uid: res.user.uid,
+      email: res.user.email,
+      displayName: displayName || email.split("@")[0],
+      photoURL: null,
+      phoneNumber: phone || null,
+      role: "owner",
+      verified: true
+    };
+    setCurrentUser(newUser);
+    localStorage.setItem("esets_auth_user_real", JSON.stringify(newUser));
+    return newUser;
   };
 
   // Email / Password Login
   const login = async (email, password) => {
-    try {
-      const res = await signInWithEmailAndPassword(auth, email, password);
-      const user = {
-        uid: res.user.uid,
-        email: res.user.email,
-        displayName: res.user.displayName || email.split("@")[0],
-        photoURL: res.user.photoURL || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: res.user.phoneNumber || "+91 98290 41188",
-        role: "owner",
-        verified: true
-      };
-      setCurrentUser(user);
-      localStorage.setItem("esets_user_v3", JSON.stringify(user));
-      return user;
-    } catch (firebaseErr) {
-      console.warn("Firebase login note, using local session login:", firebaseErr);
-      const user = {
-        uid: `user-${Date.now()}`,
-        email: email,
-        displayName: email.split("@")[0],
-        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        phoneNumber: "+91 98290 41188",
-        role: "owner",
-        verified: true
-      };
-      setCurrentUser(user);
-      localStorage.setItem("esets_user_v3", JSON.stringify(user));
-      return user;
-    }
+    const res = await signInWithEmailAndPassword(auth, email, password);
+    const user = {
+      uid: res.user.uid,
+      email: res.user.email,
+      displayName: res.user.displayName || email.split("@")[0],
+      photoURL: res.user.photoURL || null,
+      phoneNumber: res.user.phoneNumber || null,
+      role: "owner",
+      verified: true
+    };
+    setCurrentUser(user);
+    localStorage.setItem("esets_auth_user_real", JSON.stringify(user));
+    return user;
   };
 
-  // Google 1-Tap OAuth Sign-In (100% Free, Zero SMS Cost)
+  // Google 1-Tap OAuth Sign-In
   const loginWithGoogle = async () => {
-    try {
-      const res = await signInWithPopup(auth, googleProvider);
-      const user = {
-        uid: res.user.uid,
-        email: res.user.email,
-        displayName: res.user.displayName || "Google User",
-        photoURL: res.user.photoURL,
-        phoneNumber: res.user.phoneNumber || "+91 98290 41188",
-        role: "owner",
-        verified: true
-      };
-      setCurrentUser(user);
-      localStorage.setItem("esets_user_v3", JSON.stringify(user));
-      return user;
-    } catch (err) {
-      console.warn("Google popup exception, activating simulated Google Account:", err);
-      const mockGoogleUser = {
-        uid: "google-usr-" + Date.now(),
-        email: "authenticated.owner@gmail.com",
-        displayName: "Mahipal Singh Sisodia (Verified Owner)",
-        photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        role: "owner",
-        verified: true
-      };
-      setCurrentUser(mockGoogleUser);
-      localStorage.setItem("esets_user_v3", JSON.stringify(mockGoogleUser));
-      return mockGoogleUser;
-    }
+    const res = await signInWithPopup(auth, googleProvider);
+    const user = {
+      uid: res.user.uid,
+      email: res.user.email,
+      displayName: res.user.displayName || "Google User",
+      photoURL: res.user.photoURL || null,
+      phoneNumber: res.user.phoneNumber || null,
+      role: "owner",
+      verified: true
+    };
+    setCurrentUser(user);
+    localStorage.setItem("esets_auth_user_real", JSON.stringify(user));
+    return user;
   };
 
-  // 1-Click Instant Demo Roles (Verified Owner vs Direct Buyer)
-  const loginAsDemo = useCallback((role = "owner") => {
-    const demoUser = {
-      uid: "user-" + (role === "owner" ? "owner-mahipal" : "buyer-rahul"),
-      displayName: role === "owner" ? "Mahipal Singh Sisodia (Direct Owner)" : "Rahul Sharma (Direct Buyer)",
-      email: role === "owner" ? "mahipal.owner@esets.in" : "rahul.buyer@esets.in",
-      phoneNumber: role === "owner" ? "+91 98290 41188" : "+91 98110 55220",
-      photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+  // Direct Owner / Buyer Registration (No fake data: saves real details entered by user)
+  const loginWithDirectDetails = (name, phone, role = "owner") => {
+    const trimmedName = (name || "").trim();
+    const trimmedPhone = (phone || "").trim();
+    if (!trimmedName) throw new Error("Please enter your name.");
+    if (!trimmedPhone) throw new Error("Please enter your mobile number.");
+
+    const directUser = {
+      uid: `usr-direct-${Date.now()}`,
+      displayName: trimmedName,
+      email: `${trimmedPhone.replace(/\D/g, "")}@direct.esets.in`,
+      phoneNumber: trimmedPhone,
+      photoURL: null,
       role: role,
       verified: true
     };
-    localStorage.setItem("esets_user_v3", JSON.stringify(demoUser));
-    setCurrentUser(demoUser);
-  }, []);
+    setCurrentUser(directUser);
+    localStorage.setItem("esets_auth_user_real", JSON.stringify(directUser));
+    return directUser;
+  };
 
   const logout = async () => {
+    localStorage.removeItem("esets_auth_user_real");
     localStorage.removeItem("esets_user_v3");
     localStorage.removeItem("esets_user");
     try {
@@ -193,7 +152,7 @@ export const AuthProvider = ({ children }) => {
       signup,
       login,
       loginWithGoogle,
-      loginAsDemo,
+      loginWithDirectDetails,
       logout,
       loading,
       isAuthModalOpen,
