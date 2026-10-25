@@ -5,8 +5,7 @@ export default function SettingsView({
   onThemeChange,
   isGlobalCallShieldActive,
   onToggleGlobalCallShield,
-  onOpenChecklistModal,
-  onOpenSubscriptionModal
+  onOpenChecklistModal
 }) {
   const [activeCategory, setActiveCategory] = useState("theme"); // 'theme' | 'shield' | 'geo' | 'device' | 'plans'
   const [radiusKm, setRadiusKm] = useState(5);
@@ -100,12 +99,10 @@ export default function SettingsView({
           </div>
         </div>
 
-        <button 
-          onClick={onOpenSubscriptionModal}
-          className="px-3 py-1.5 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-label-md font-bold shadow-xs hover:opacity-95"
-        >
-          Pro Tier
-        </button>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-container text-secondary-container font-code-spec text-[11px] font-bold shadow-xs">
+          <span className="material-symbols-outlined text-[15px]">verified</span>
+          <span>Verified</span>
+        </div>
       </div>
 
       {/* Clean Category Navigation Pills */}
@@ -115,7 +112,7 @@ export default function SettingsView({
           { id: "shield", label: "🛑 'Sold It' Call Shield" },
           { id: "geo", label: "📍 Location & Radius" },
           { id: "device", label: "📱 Real Device Security" },
-          { id: "plans", label: "👑 Dealer Plans" }
+          { id: "legal", label: "⚖️ Legal Due Diligence" }
         ].map(cat => (
           <button
             key={cat.id}
@@ -423,52 +420,44 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* SECTION 5: DEALER PLANS */}
-      {activeCategory === "plans" && (
+      {/* SECTION 5: LEGAL DUE DILIGENCE CHECKLIST */}
+      {activeCategory === "legal" && (
         <div className="p-4 rounded-2xl bg-surface-container-low border border-surface-container space-y-4 shadow-xs animate-in fade-in duration-200">
           <div>
             <h2 className="font-headline-sm text-headline-sm text-primary font-bold">
-              Dealer & Builder Memberships
+              7-Step Legal Due Diligence
             </h2>
             <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-              Professional subscription tiers for active property consultants, brokers, and builders.
+              Zero middlemen safety standards for direct buyers and sellers. Never pay token advances before physical inspection.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-4 rounded-xl bg-surface-container border border-surface-container space-y-2">
-              <span className="font-code-spec text-[11px] font-bold text-secondary uppercase">Silver Dealer Pro</span>
-              <div className="font-headline-sm font-bold text-primary">₹8,000 <span className="font-body-sm text-[12px] font-normal text-on-surface-variant">/ mo</span></div>
-              <p className="font-body-sm text-[12px] text-on-surface-variant">25 property listings, Blue Checkmark badge, and district priority rank.</p>
-              <button 
-                onClick={onOpenSubscriptionModal}
-                className="w-full mt-2 py-2 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md font-bold"
-              >
-                Upgrade to Silver
-              </button>
+          <div className="p-4 rounded-xl bg-surface-container border border-surface-container space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary text-[20px]">gavel</span>
+              <span className="font-label-lg font-bold text-primary">Mandatory Document Checks</span>
             </div>
+            <ul className="space-y-2 text-[12px] font-body-sm text-on-surface-variant">
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[15px] text-tertiary-fixed-dim">check_circle</span>
+                <span>Original Freehold Registry Title Deed verification</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[15px] text-tertiary-fixed-dim">check_circle</span>
+                <span>30-Year Encumbrance Certificate (EC) from Sub-Registrar</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[15px] text-tertiary-fixed-dim">check_circle</span>
+                <span>Latest Municipal Property Tax receipts and Khata mutation</span>
+              </li>
+            </ul>
 
-            <div className="p-4 rounded-xl bg-surface-container border border-surface-container space-y-2">
-              <span className="font-code-spec text-[11px] font-bold text-secondary uppercase">Gold Elite Builder</span>
-              <div className="font-headline-sm font-bold text-primary">₹15,000 <span className="font-body-sm text-[12px] font-normal text-on-surface-variant">/ mo</span></div>
-              <p className="font-body-sm text-[12px] text-on-surface-variant">Unlimited listings, 360° virtual tours, homepage featured spotlight banner.</p>
-              <button 
-                onClick={onOpenSubscriptionModal}
-                className="w-full mt-2 py-2 rounded-xl bg-primary-container text-secondary-container font-label-md font-bold"
-              >
-                Upgrade to Gold
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-2 flex items-center justify-between text-xs">
-            <span className="font-body-sm text-on-surface-variant">Need official company GST invoice?</span>
             <button 
-              onClick={() => alert("Downloading official tax invoices and payment ledger...")}
-              className="font-label-md font-bold text-secondary hover:underline flex items-center gap-1"
+              onClick={onOpenChecklistModal}
+              className="w-full mt-2 py-2.5 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md font-bold shadow-xs hover:opacity-95 flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-              Download Invoices
+              <span className="material-symbols-outlined text-[18px]">fact_check</span>
+              <span>Open Interactive 7-Step Checklist</span>
             </button>
           </div>
         </div>

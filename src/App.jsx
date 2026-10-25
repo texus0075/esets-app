@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 
 // Custom Hooks for Hardware & Native Integration
 import { useGeolocation } from "./hooks/useGeolocation";
-import { usePWAInstall } from "./hooks/usePWAInstall";
 
 // Global Layout & Navigation Components
 import Navbar from "./components/Navbar";
@@ -19,7 +18,6 @@ import SettingsView from "./components/SettingsView";
 // Modals
 import PropertyFolioModal from "./components/PropertyFolioModal";
 import LocationModal from "./components/LocationModal";
-import SubscriptionModal from "./components/SubscriptionModal";
 import LegalChecklistModal from "./components/LegalChecklistModal";
 
 // Initial Listing Data
@@ -78,12 +76,10 @@ export default function App() {
 
   // Modals State
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
 
-  // Hardware GPS & PWA Install Hooks
-  const { gpsData, isLocating: isLocatingGps, detectLocation: handleDetectRealGPS } = useGeolocation();
-  const { triggerInstall: handleTriggerInstall } = usePWAInstall();
+  // Hardware GPS Hook with Real-time Reverse Geocoding
+  const { gpsData, isLocating: isLocatingGps, detectLocation } = useGeolocation();
 
   // Sync theme class to document <html> element
   useEffect(() => {
@@ -93,7 +89,7 @@ export default function App() {
     localStorage.setItem("esets_theme", theme);
   }, [theme]);
 
-  // Persist Call Shield & Saved IDs
+  // Persist Call Shield, Saved IDs & Custom Properties
   useEffect(() => {
     localStorage.setItem("esets_call_shield", isGlobalCallShieldActive);
   }, [isGlobalCallShieldActive]);
@@ -105,6 +101,16 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("esets_custom_properties", JSON.stringify(properties));
   }, [properties]);
+
+  // Trigger Hardware GPS with Instant Reverse Geocoding & Dynamic Location Selection
+  const handleDetectGPS = () => {
+    detectLocation((resolved) => {
+      if (resolved && resolved.district) {
+        setSelectedDistrict(resolved.district);
+        alert(`📍 Real GPS Locked:\n${resolved.fullName}\n\nLocation set to "${resolved.district}". Listings prioritized.`);
+      }
+    });
+  };
 
   // Handlers for Properties
   const handleToggleSold = (propertyId, currentStatus) => {
@@ -143,24 +149,35 @@ export default function App() {
     setSearchQuery("");
   };
 
-  // Filtered Properties for Explore Feed
+  // High-Precision Real-Time Filtering
   const filteredProperties = useMemo(() => {
     return properties.filter(item => {
-      // Category filter
+      // 1. Category Filter
       if (activeCategory && activeCategory !== "All") {
         if (item.category !== activeCategory) return false;
       }
 
-      // District filter
+      // 2. District & Locality Filter
       if (selectedDistrict && selectedDistrict !== "All Districts" && selectedDistrict !== "") {
-        if (item.district !== selectedDistrict) return false;
+        const target = selectedDistrict.toLowerCase();
+        const itemDistrict = (item.district || "").toLowerCase();
+        const itemLocality = (item.locality || "").toLowerCase();
+        const itemState = (item.state || "").toLowerCase();
+        
+        const matchesDistrict = itemDistrict.includes(target) || target.includes(itemDistrict);
+        const matchesLocality = itemLocality.includes(target) || target.includes(itemLocality);
+        const matchesState = itemState.includes(target);
+
+        if (!matchesDistrict && !matchesLocality && !matchesState) {
+          return false;
+        }
       }
 
-      // Deal intent (Buy/Sale vs Rent)
+      // 3. Deal Intent (Buy/Sale vs Rent)
       if (dealIntent === "Buy" && item.dealType !== "Sale") return false;
       if (dealIntent === "Rent" && item.dealType !== "Rent") return false;
 
-      // BHK filter
+      // 4. BHK Filter
       if (bhkFilter !== "All") {
         if (bhkFilter === "1 BHK" && item.bhk !== 1) return false;
         if (bhkFilter === "2 BHK" && item.bhk !== 2) return false;
@@ -168,13 +185,25 @@ export default function App() {
         if (bhkFilter === "4+ BHK" && item.bhk < 4) return false;
       }
 
-      // Search Query
+      // 5. Comprehensive Real-Time Search Query Matching
       if (searchQuery.trim() !== "") {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         const matchesTitle = item.title?.toLowerCase().includes(q);
         const matchesLocality = item.locality?.toLowerCase().includes(q);
         const matchesDistrict = item.district?.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesLocality && !matchesDistrict) return false;
+        const matchesState = item.state?.toLowerCase().includes(q);
+        const matchesCategory = item.category?.toLowerCase().includes(q);
+        const matchesDealType = item.dealType?.toLowerCase().includes(q);
+        const matchesBhk = `${item.bhk} bhk`.toLowerCase().includes(q) || `${item.bhk}bhk`.toLowerCase().includes(q);
+        const matchesPincode = item.pincode?.includes(q);
+        const matchesSeller = item.sellerName?.toLowerCase().includes(q);
+        const matchesDesc = item.description?.toLowerCase().includes(q);
+
+        if (!matchesTitle && !matchesLocality && !matchesDistrict && !matchesState &&
+            !matchesCategory && !matchesDealType && !matchesBhk && !matchesPincode &&
+            !matchesSeller && !matchesDesc) {
+          return false;
+        }
       }
 
       return true;
@@ -185,12 +214,19 @@ export default function App() {
     return properties.filter(p => savedIds.includes(p.id));
   }, [properties, savedIds]);
 
+  // Determine current active location label for Navbar
+  const currentLocationLabel = useMemo(() => {
+    if (selectedDistrict) return selectedDistrict;
+    if (gpsData && gpsData.district) return gpsData.district;
+    return "South Delhi";
+  }, [selectedDistrict, gpsData]);
+
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-fixed">
       
       {/* 1. Global Navigation Bar */}
       <Navbar
-        selectedDistrict={selectedDistrict || "South Delhi"}
+        selectedDistrict={currentLocationLabel}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
         onNavigateToSettings={() => setActiveTab("settings")}
         onOpenMenu={() => setIsMenuOpen(true)}
@@ -208,7 +244,6 @@ export default function App() {
         isGlobalCallShieldActive={isGlobalCallShieldActive}
         onToggleGlobalCallShield={handleToggleGlobalCallShield}
         onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
-        onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
       />
 
       {/* 3. Modular Tab Views Routing */}
@@ -228,10 +263,8 @@ export default function App() {
           onResetFilters={handleResetFilters}
           gpsData={gpsData}
           isLocatingGps={isLocatingGps}
-          onDetectGPS={handleDetectRealGPS}
-          onTriggerInstall={handleTriggerInstall}
+          onDetectGPS={handleDetectGPS}
           onPostProperty={() => setActiveTab("post-free")}
-          onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
           onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
           onSelectProperty={setSelectedProperty}
           isGlobalCallShieldActive={isGlobalCallShieldActive}
@@ -268,7 +301,6 @@ export default function App() {
           isGlobalCallShieldActive={isGlobalCallShieldActive}
           onToggleGlobalCallShield={handleToggleGlobalCallShield}
           onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
-          onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
         />
       )}
 
@@ -293,11 +325,6 @@ export default function App() {
         onClose={() => setIsLocationModalOpen(false)}
         selectedDistrict={selectedDistrict}
         onSelectDistrict={setSelectedDistrict}
-      />
-
-      <SubscriptionModal
-        isOpen={isSubscriptionModalOpen}
-        onClose={() => setIsSubscriptionModalOpen(false)}
       />
 
       <LegalChecklistModal

@@ -12,8 +12,7 @@ export default function MenuDrawer({
   onThemeChange,
   isGlobalCallShieldActive,
   onToggleGlobalCallShield,
-  onOpenChecklistModal,
-  onOpenSubscriptionModal
+  onOpenChecklistModal
 }) {
   if (!isOpen) return null;
 
@@ -129,18 +128,6 @@ export default function MenuDrawer({
             <span className="text-[10px] font-code-spec px-1.5 py-0.5 rounded bg-black/20">
               {isGlobalCallShieldActive ? "ACTIVE" : "STANDBY"}
             </span>
-          </button>
-
-          {/* Dealer Subscription */}
-          <button
-            onClick={() => {
-              onOpenSubscriptionModal();
-              onClose();
-            }}
-            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md"
-          >
-            <span className="material-symbols-outlined text-[18px] text-secondary">workspace_premium</span>
-            <span>Dealer & Builder (₹8,000/mo)</span>
           </button>
 
           {/* Legal Checklist */}

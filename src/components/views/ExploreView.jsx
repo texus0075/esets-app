@@ -26,12 +26,8 @@ export default function ExploreView({
   isLocatingGps,
   onDetectGPS,
 
-  // App Install
-  onTriggerInstall,
-
   // Modals & Navigation
   onPostProperty,
-  onOpenSubscriptionModal,
   onOpenChecklistModal,
   onSelectProperty,
   isGlobalCallShieldActive
@@ -40,12 +36,10 @@ export default function ExploreView({
     <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto">
       <div className="flex flex-col w-full pb-8">
         
-        {/* 1. Hero & CTAs Section */}
+        {/* 1. Hero & CTAs Section (Clean, compact, 0 install boxes) */}
         <ExploreHero
           onPostProperty={onPostProperty}
-          onOpenSubscriptionModal={onOpenSubscriptionModal}
           onOpenChecklistModal={onOpenChecklistModal}
-          onTriggerInstall={onTriggerInstall}
         />
 
         {/* 2. Horizontal Micro-Trust Cards */}
@@ -57,7 +51,7 @@ export default function ExploreView({
           onSelectCategory={onSelectCategory}
         />
 
-        {/* 4. District Chips, GPS Lock & Search Input */}
+        {/* 4. District Chips, Dynamic Real GPS Chip & Live Search Bar */}
         <ExploreFilterBar
           selectedDistrict={selectedDistrict}
           onSelectDistrict={onSelectDistrict}
@@ -70,6 +64,7 @@ export default function ExploreView({
           gpsData={gpsData}
           isLocatingGps={isLocatingGps}
           onDetectGPS={onDetectGPS}
+          matchingCount={properties.length}
         />
 
         {/* 5. Direct Owner Property Feed */}

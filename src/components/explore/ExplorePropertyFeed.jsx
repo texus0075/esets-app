@@ -19,7 +19,7 @@ export default function ExplorePropertyFeed({
           </h2>
           <p className="font-code-spec text-[11px] text-on-surface-variant">
             {activeCategory !== "All" ? `${activeCategory} • ` : ""}
-            {selectedDistrict ? `${selectedDistrict} • ` : ""}
+            {selectedDistrict ? `${selectedDistrict} • ` : "All Locations • "}
             100% Genuine Freehold Deeds
           </p>
         </div>
@@ -40,18 +40,26 @@ export default function ExplorePropertyFeed({
 
       {/* Empty State Fallback */}
       {properties.length === 0 && (
-        <div className="p-8 text-center bg-surface-container rounded-2xl">
-          <span className="material-symbols-outlined text-[36px] text-on-surface-variant">search_off</span>
-          <p className="font-headline-sm text-headline-sm text-primary mt-2">No Matching Properties</p>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-            Try resetting your category or district filters.
+        <div className="p-8 text-center bg-surface-container rounded-2xl border border-surface-container-high">
+          <span className="material-symbols-outlined text-[40px] text-secondary">location_searching</span>
+          <p className="font-headline-sm text-headline-sm text-primary mt-2 font-bold">
+            {selectedDistrict 
+              ? `No Listings in "${selectedDistrict}" Yet` 
+              : "No Properties Match Your Filter"}
           </p>
-          <button 
-            onClick={onResetFilters}
-            className="mt-3 px-4 py-2 rounded-xl bg-primary-container text-secondary-container font-label-md font-bold"
-          >
-            Reset All Filters
-          </button>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 max-w-sm mx-auto">
+            {selectedDistrict 
+              ? `Direct 0% brokerage owner listings are currently open in ${selectedDistrict}. You can be the first owner to post here or view other regions.`
+              : "Try adjusting your search keywords, BHK size, or category filters."}
+          </p>
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
+            <button 
+              onClick={onResetFilters}
+              className="px-4 py-2 rounded-xl bg-primary text-surface font-label-md font-bold shadow-xs hover:opacity-90"
+            >
+              Show All Verified Properties
+            </button>
+          </div>
         </div>
       )}
     </section>
