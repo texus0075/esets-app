@@ -27,6 +27,15 @@ import AuthModal from "./components/AuthModal";
 // Initial Listing Data
 import { INITIAL_PROPERTIES, DISTRICTS } from "./data/mockData";
 
+// Firestore Property Service & Real-Time Sync
+import { 
+  subscribeToProperties, 
+  createProperty, 
+  toggleSoldStatus, 
+  deleteProperty, 
+  getCachedProperties 
+} from "./services/propertyService";
+
 export default function App() {
   // Authentication State from Firebase
   const { 
@@ -92,27 +101,20 @@ export default function App() {
     return DISTRICTS.filter(d => d !== "All Districts");
   });
 
-  // Persistent Properties State
-  const [properties, setProperties] = useState(() => {
-    try {
-      const version = localStorage.getItem("esets_data_version");
-      if (version !== "v3_real") {
-        return INITIAL_PROPERTIES;
+  // Persistent Properties State (Cached + Real-Time Cloud Firestore Sync)
+  const [properties, setProperties] = useState(() => getCachedProperties());
+
+  // Real-Time Cloud Firestore Listener (Broadcasts sync across all devices)
+  useEffect(() => {
+    const unsubscribe = subscribeToProperties((liveProps) => {
+      if (liveProps && liveProps.length > 0) {
+        setProperties(liveProps);
       }
-      const stored = localStorage.getItem("esets_custom_properties");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(p => p.id === "prop-rajsamand-dhoinda")) {
-          const storedIds = new Set(parsed.map(p => p.id));
-          const freshMissing = INITIAL_PROPERTIES.filter(p => !storedIds.has(p.id));
-          return [...parsed, ...freshMissing];
-        }
-      }
-    } catch (e) {
-      console.warn("Storage parse error:", e);
-    }
-    return INITIAL_PROPERTIES;
-  });
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   // Property Filters State
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -185,8 +187,9 @@ export default function App() {
     });
   };
 
-  // Handlers for Properties
-  const handleToggleSold = (propertyId, currentStatus) => {
+  // Handlers for Properties with Real-Time Cloud Firestore Sync
+  const handleToggleSold = async (propertyId, currentStatus) => {
+    // Optimistic UI update
     setProperties(prev => prev.map(p => {
       if (p.id === propertyId) {
         return { ...p, isSold: !currentStatus };
@@ -196,35 +199,43 @@ export default function App() {
     if (selectedProperty && selectedProperty.id === propertyId) {
       setSelectedProperty(prev => ({ ...prev, isSold: !currentStatus }));
     }
+    await toggleSoldStatus(propertyId, currentStatus);
   };
 
-  const handleDeleteProperty = (propertyId) => {
+  const handleDeleteProperty = async (propertyId) => {
+    // Optimistic UI update
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setMyPropertyIds(prev => prev.filter(id => id !== propertyId));
     setSavedIds(prev => prev.filter(id => id !== propertyId));
     if (selectedProperty && selectedProperty.id === propertyId) {
       setSelectedProperty(null);
     }
+    await deleteProperty(propertyId);
   };
 
   const handleToggleGlobalCallShield = () => {
     setIsGlobalCallShieldActive(prev => !prev);
   };
 
-  const handleAddProperty = (newProperty) => {
-    const created = {
+  const handleAddProperty = async (newProperty) => {
+    const payload = {
       ...newProperty,
-      id: `prop-${Date.now()}`,
       postedAt: "Listed Just now",
-      views: 1,
-      sellerName: currentUser?.displayName || "Vikramaditya Rao",
-      sellerPhone: currentUser?.phoneNumber || "+91 98800 12345",
+      sellerName: currentUser?.displayName || newProperty.sellerName || "Mahipal Singh Sisodia",
+      sellerPhone: currentUser?.phoneNumber || newProperty.sellerPhone || "+91 98290 41188",
+      sellerType: "Verified Direct Owner",
       verifiedOwner: true
     };
-    setProperties(prev => [created, ...prev]);
-    setMyPropertyIds(prev => [created.id, ...prev]);
-    alert("🎉 Your property has been published live with 0% brokerage!");
-    setActiveTab("my-listings");
+    try {
+      const created = await createProperty(payload, currentUser?.uid);
+      setProperties(prev => [created, ...prev.filter(p => p.id !== created.id)]);
+      setMyPropertyIds(prev => [created.id, ...prev.filter(id => id !== created.id)]);
+      alert("🎉 आपकी प्रॉपर्टी 0% ब्रोकरेज के साथ लाइव पब्लिश हो गई है और क्लाउड फायरबेस पर सिंक हो चुकी है!");
+      setActiveTab("my-listings");
+    } catch (err) {
+      console.error("Property publishing error:", err);
+      alert("प्रॉपर्टी पब्लिश करने में समस्या आई, कृपया पुनः प्रयास करें।");
+    }
   };
 
   const handleResetFilters = () => {
