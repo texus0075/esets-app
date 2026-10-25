@@ -93,7 +93,7 @@ export default function SettingsView({
                 {currentUser?.displayName || "Guest Visitor"}
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-primary-container text-secondary-container font-code-spec text-[10px] font-bold">
-                {currentUser ? "Direct Owner" : "Not Signed In"}
+                {currentUser ? (currentUser.role === "buyer" ? "Direct Buyer" : "Direct Owner") : "Not Signed In"}
               </span>
             </div>
             <p className="font-body-sm text-[12px] text-on-surface-variant mt-0.5 truncate">

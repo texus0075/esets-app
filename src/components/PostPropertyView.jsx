@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function PostPropertyView({ onBack, onAddProperty }) {
+  const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
@@ -22,8 +24,8 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
 
   // Step 3 State
   const [imageUrl, setImageUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCV-_a25YQvnTI8Tv1GvQj6_8bcaTVs10sFXtJMtbaJJC0eGW4Dfvix2xtse6Kgpi2j96cgyY6XxbwopzEdu3SNbwAYs9I8kRDIAiS0OS-kHQYZpd5AWLuVrZEw6HggnTUSJ_hprFqd4orACpFRNlNpIWevtxMVwszm9YvMD_phbDx9JDVEGr16N_Evw4oWSGKG-YNSmi7nwDk4zhyOB9WkJRtUbMBX54P_3F9l-w");
-  const [sellerName, setSellerName] = useState("Vikramaditya Rao");
-  const [sellerPhone, setSellerPhone] = useState("+91 98800 12345");
+  const [sellerName, setSellerName] = useState(currentUser?.displayName || "Vikramaditya Rao");
+  const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "+91 98800 12345");
   const [callingHours, setCallingHours] = useState("9:00 AM – 8:30 PM");
   const [agreeTerms, setAgreeTerms] = useState(true);
 
