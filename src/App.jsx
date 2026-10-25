@@ -1,474 +1,499 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
-import SafetyBanner from "./components/SafetyBanner";
-import FilterBar from "./components/FilterBar";
+import BottomNav from "./components/BottomNav";
 import PropertyCard from "./components/PropertyCard";
-import PropertyDetailModal from "./components/PropertyDetailModal";
-import PostPropertyModal from "./components/PostPropertyModal";
+import PropertyFolioModal from "./components/PropertyFolioModal";
+import PostPropertyView from "./components/PostPropertyView";
+import SettingsView from "./components/SettingsView";
 import LocationModal from "./components/LocationModal";
-import MyListingsModal from "./components/MyListingsModal";
 import SubscriptionModal from "./components/SubscriptionModal";
-import AuthModal from "./components/AuthModal";
-import { 
-  fetchProperties, 
-  createProperty, 
-  toggleSoldStatus, 
-  deleteProperty 
-} from "./services/propertyService";
-import { 
-  Building2, 
-  MapPin, 
-  PlusCircle, 
-  Sparkles,
-  PhoneCall,
-  CheckCircle2,
-  ShieldCheck,
-  Crown,
-  Ban,
-  ArrowRight,
-  Compass,
-  MessageCircle
-} from "lucide-react";
+import LegalChecklistModal from "./components/LegalChecklistModal";
+import { INITIAL_PROPERTIES, DISTRICTS } from "./data/mockData";
 
-function MainContent() {
-  const { currentUser } = useAuth();
+export default function App() {
+  // Navigation & Theme State
+  const [activeTab, setActiveTab] = useState("explore");
+  const [theme, setTheme] = useState("light"); // 'light' | 'dark' | 'oled'
+  const [isGlobalCallShieldActive, setIsGlobalCallShieldActive] = useState(false);
 
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const [selectedDistrict, setSelectedDistrict] = useState("South Delhi");
-  const [dealType, setDealType] = useState("All");
-  const [category, setCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("newest");
-  const [searchTerm, setSearchTerm] = useState("");
-
+  // Property & Filter State
+  const [properties, setProperties] = useState(INITIAL_PROPERTIES);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [dealIntent, setDealIntent] = useState("All"); // 'All' | 'Buy' | 'Rent'
+  const [bhkFilter, setBhkFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [savedIds, setSavedIds] = useState(["prop-1"]);
+
+  // Modals
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const [isMyListingsOpen, setIsMyListingsOpen] = useState(false);
+  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
 
+  // Sync theme class to document <html> element
   useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      const data = await fetchProperties();
-      setProperties(data);
-      setLoading(false);
-    }
-    loadData();
-  }, []);
+    const root = document.documentElement;
+    root.classList.remove("light", "dark", "oled");
+    root.classList.add(theme);
+  }, [theme]);
 
-  const handleAddProperty = async (propertyData) => {
-    const newProp = await createProperty(propertyData, currentUser?.uid);
-    setProperties(prev => [newProp, ...prev]);
-    alert("🎉 आपका विज्ञापन सफलतापूर्वक लाइव पब्लिश हो गया है!");
-  };
-
-  const handleToggleSold = async (propertyId, currentStatus) => {
-    const updated = await toggleSoldStatus(propertyId, currentStatus);
-    setProperties(updated);
+  // Handlers
+  const handleToggleSold = (propertyId, currentStatus) => {
+    setProperties(prev => prev.map(p => {
+      if (p.id === propertyId) {
+        return { ...p, isSold: !currentStatus };
+      }
+      return p;
+    }));
     if (selectedProperty && selectedProperty.id === propertyId) {
       setSelectedProperty(prev => ({ ...prev, isSold: !currentStatus }));
     }
   };
 
-  const handleDeleteProperty = async (propertyId) => {
-    const updated = await deleteProperty(propertyId);
-    setProperties(updated);
-    if (selectedProperty && selectedProperty.id === propertyId) {
-      setSelectedProperty(null);
-    }
+  const handleToggleGlobalCallShield = () => {
+    setIsGlobalCallShieldActive(prev => !prev);
   };
 
-  const handleCallClick = (property, e) => {
-    if (!currentUser) {
-      e.preventDefault();
-      setIsAuthModalOpen(true);
-    }
+  const handleAddProperty = (newProperty) => {
+    const created = {
+      ...newProperty,
+      id: `prop-${Date.now()}`,
+      postedAt: "Just now",
+      views: 1
+    };
+    setProperties(prev => [created, ...prev]);
+    alert("🎉 Your property has been published live with 0% brokerage!");
+    setActiveTab("explore");
   };
 
+  // Filtered Properties for Explore Feed
   const filteredProperties = useMemo(() => {
     return properties.filter(item => {
-      if (selectedDistrict && selectedDistrict !== "" && item.district !== selectedDistrict) {
-        return false;
+      // District filter
+      if (selectedDistrict && selectedDistrict !== "All Districts" && selectedDistrict !== "") {
+        if (item.district !== selectedDistrict) return false;
       }
-      if (dealType !== "All" && item.dealType !== dealType) {
-        return false;
+      // Deal intent (Buy/Sale vs Rent)
+      if (dealIntent === "Buy" && item.dealType !== "Sale") return false;
+      if (dealIntent === "Rent" && item.dealType !== "Rent") return false;
+
+      // BHK filter
+      if (bhkFilter !== "All") {
+        if (bhkFilter === "1 BHK" && item.bhk !== 1) return false;
+        if (bhkFilter === "2 BHK" && item.bhk !== 2) return false;
+        if (bhkFilter === "3 BHK" && item.bhk !== 3) return false;
+        if (bhkFilter === "4+ BHK" && item.bhk < 4) return false;
       }
-      if (category !== "All" && item.category !== category) {
-        return false;
+
+      // Search Query
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = item.title?.toLowerCase().includes(q);
+        const matchesLocality = item.locality?.toLowerCase().includes(q);
+        const matchesDistrict = item.district?.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesLocality && !matchesDistrict) return false;
       }
-      if (searchTerm.trim()) {
-        const query = searchTerm.toLowerCase();
-        const matchesTitle = item.title?.toLowerCase().includes(query);
-        const matchesLocality = item.locality?.toLowerCase().includes(query);
-        const matchesDistrict = item.district?.toLowerCase().includes(query);
-        const matchesPrice = item.priceUnit?.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesLocality && !matchesDistrict && !matchesPrice) {
-          return false;
-        }
-      }
+
       return true;
-    }).sort((a, b) => {
-      if (sortBy === "price_low") return a.price - b.price;
-      if (sortBy === "price_high") return b.price - a.price;
-      return 0;
     });
-  }, [properties, selectedDistrict, dealType, category, searchTerm, sortBy]);
+  }, [properties, selectedDistrict, dealIntent, bhkFilter, searchQuery]);
 
-  const myProperties = useMemo(() => {
-    if (!currentUser) return [];
-    return properties.filter(p => p.userId === currentUser.uid || currentUser.isDemo);
-  }, [properties, currentUser]);
-
-  const quickDistricts = ["South Delhi", "Gurugram", "West Delhi", "Noida", "Central Delhi"];
+  const savedProperties = useMemo(() => {
+    return properties.filter(p => savedIds.includes(p.id));
+  }, [properties, savedIds]);
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4] flex flex-col selection:bg-[#87A168] selection:text-white">
-      
-      {/* Navbar with Video Concept 3 Tokens */}
+    <div className="min-h-screen bg-surface text-on-surface flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-fixed">
+      {/* Top Navbar */}
       <Navbar
-        selectedDistrict={selectedDistrict}
+        selectedDistrict={selectedDistrict || "South Delhi, DL"}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
-        onOpenPostModal={() => {
-          if (!currentUser) {
-            setIsAuthModalOpen(true);
-          } else {
-            setIsPostModalOpen(true);
-          }
-        }}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-        onOpenMyListings={() => setIsMyListingsOpen(true)}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
+        onNavigateToSettings={() => setActiveTab("settings")}
       />
 
-      {/* Safety Shield Banner */}
-      <SafetyBanner />
-
-      {/* =========================================================================
-          HERO SECTION: Video Concept 3 (60-30-10 Warm Earth & Prestige Architecture)
-          60% Dominant: Deep Sage/Forest Dark Earth (#1B2416)
-          30% Secondary: Walnut Brown & Architectural Warm Ivory Cards
-          10% Accent: Radiant Amber Glow (#D5810F) Triggers
-         ========================================================================= */}
-      <section className="earth-gradient-hero text-white py-10 sm:py-14 px-4 sm:px-6 relative overflow-hidden border-b border-[#563E28]/30">
-        
-        {/* Subtle Ambient Radial Glows */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#87A168]/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-[#D5810F]/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto relative z-10 space-y-6">
-          
-          {/* Top Live Status Pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#87A168]/20 border border-[#87A168]/40 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-[#D5810F] shadow-[0_0_8px_#D5810F]" />
-            <span className="text-[11px] sm:text-xs font-bold text-[#EAF1E4] tracking-wide uppercase">
-              OLX FOR REAL ESTATE • 100% डायरेक्ट C2C • 0% ब्रोकरेज
-            </span>
-          </div>
-
-          {/* Mobile-First Clamped Headline */}
-          <div className="space-y-3 max-w-3xl">
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              सीधे मकान मालिक से प्रॉपर्टी खरीदें और बेचें —{" "}
-              <span className="text-[#D5810F] drop-shadow-sm">
-                ₹0 ब्रोकरेज, नो मिडलमैन कमीशन।
-              </span>
-            </h1>
-
-            <p className="text-xs sm:text-sm text-[#EADDD0] leading-relaxed max-w-2xl">
-              बिना किसी डीलर, ब्रोकर या बिचौलिए के। अपना पसंदीदा जिला चुनें, असली ओनर से 1-टैप में सीधे फोन या व्हाट्सएप पर बात करें, और खुद मौके पर जाकर रजिस्ट्री पेपर्स देखकर डील फाइनल करें।
-            </p>
-          </div>
-
-          {/* Primary Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              onClick={() => {
-                if (!currentUser) setIsAuthModalOpen(true);
-                else setIsPostModalOpen(true);
-              }}
-              className="amber-glow-btn flex items-center gap-2 px-5 py-3 rounded-xl font-black text-xs sm:text-sm cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>मुफ्त प्रॉपर्टी लिस्ट करें (0% ब्रोकरेज)</span>
-            </button>
-
-            <button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#563E28]/80 hover:bg-[#563E28] text-[#FEF6EC] border border-[#D5810F]/30 font-bold text-xs sm:text-sm transition cursor-pointer"
-            >
-              <Crown className="w-4 h-4 text-[#D5810F]" />
-              <span>डीलर & बिल्डर सब्सक्रिप्शन (₹8,000/माह)</span>
-            </button>
-          </div>
-
-          {/* Luxury Micro Action Cards (Value & Trust Architecture) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4">
+      {/* Main Tab Routing */}
+      {activeTab === "explore" && (
+        <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto">
+          <div className="flex flex-col w-full pb-8">
             
-            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#87A168]/30 border border-[#87A168]/40 flex items-center justify-center shrink-0">
-                <PhoneCall className="w-5 h-5 text-[#87A168]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-[#D5810F]">🟢 सीधा 1-टैप कॉल</div>
-                <div className="text-xs font-bold text-white truncate">मालिक से डायरेक्ट बातचीत</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/25 border border-rose-400/40 flex items-center justify-center shrink-0">
-                <Ban className="w-5 h-5 text-rose-300" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-rose-300">🛑 'Sold It' कॉल शील्ड</div>
-                <div className="text-xs font-bold text-white truncate">डील होते ही कॉल्स बंद</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#D5810F]/25 border border-[#D5810F]/40 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5 text-[#D5810F]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-[#EADDD0]">🛡️ 100% एंटी-फ्रॉड</div>
-                <div className="text-xs font-bold text-white truncate">नो ऑनलाइन एडवांस टोकन</div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Quick District Picker Pills */}
-          <div className="pt-2 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-[#EADDD0]/80 font-medium">पॉपुलर जिले:</span>
-            {quickDistricts.map(dist => (
-              <button
-                key={dist}
-                onClick={() => setSelectedDistrict(dist)}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition border cursor-pointer ${
-                  selectedDistrict === dist
-                    ? "bg-[#D5810F] text-white border-[#D5810F] shadow-sm"
-                    : "bg-white/10 hover:bg-white/20 text-white border-white/20"
-                }`}
-              >
-                {dist}
-              </button>
-            ))}
-            <button
-              onClick={() => setSelectedDistrict("")}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition border cursor-pointer ${
-                selectedDistrict === ""
-                  ? "bg-[#D5810F] text-white border-[#D5810F]"
-                  : "bg-white/10 hover:bg-white/20 text-[#EADDD0] border-white/20"
-              }`}
-            >
-              पूरा भारत
-            </button>
-          </div>
-
-        </div>
-      </section>
-
-      {/* Filter Bar with Warm Earth System */}
-      <FilterBar
-        dealType={dealType}
-        setDealType={setDealType}
-        category={category}
-        setCategory={setCategory}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        selectedDistrict={selectedDistrict}
-        onOpenLocationModal={() => setIsLocationModalOpen(true)}
-        totalResults={filteredProperties.length}
-      />
-
-      {/* Main Property Listings Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-        {loading ? (
-          <div className="py-20 text-center space-y-3">
-            <div className="w-10 h-10 border-4 border-[#87A168] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-sm font-bold text-[#563E28]">आपके जिले की प्रॉपर्टीज लोड हो रही हैं...</p>
-          </div>
-        ) : filteredProperties.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-[#563E28]/15 p-12 text-center max-w-lg mx-auto shadow-xs space-y-4">
-            <div className="w-16 h-16 bg-[#F8F7F4] rounded-2xl flex items-center justify-center mx-auto border border-[#563E28]/10">
-              <MapPin className="w-8 h-8 text-[#87A168]" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-[#1B2416]">
-                {selectedDistrict} में अभी कोई एक्टिव लिस्टिंग नहीं है
-              </h3>
-              <p className="text-xs text-[#563E28]/80 mt-1">
-                आप इस जिले में पहली प्रॉपर्टी लिस्ट कर सकते हैं या दूसरे जिले की प्रॉपर्टीज देख सकते हैं।
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-              <button
-                onClick={() => setSelectedDistrict("")}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#563E28] hover:bg-[#3A2818] text-white font-bold text-xs transition"
-              >
-                पूरे भारत की प्रॉपर्टीज देखें
-              </button>
-              <button
-                onClick={() => {
-                  if (!currentUser) setIsAuthModalOpen(true);
-                  else setIsPostModalOpen(true);
-                }}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl amber-glow-btn font-bold text-xs"
-              >
-                इस जिले में प्रॉपर्टी लिस्ट करें
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(0, 1fr))" }}>
-            {filteredProperties.map((prop) => (
-              <PropertyCard
-                key={prop.id}
-                property={prop}
-                onSelect={(p) => setSelectedProperty(p)}
-                onCallClick={handleCallClick}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-
-      {/* Unified Multi-Column Footer (Workspace Rule 6) */}
-      <footer className="bg-[#1B2416] text-[#EADDD0] border-t border-[#563E28]/40 pt-10 pb-8 px-4 sm:px-6 text-xs">
-        <div className="max-w-7xl mx-auto space-y-8">
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            
-            {/* Column 1: Brand Trust */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#563E28] to-[#87A168] flex items-center justify-center text-white">
-                  <Building2 className="w-5 h-5 text-[#FEF6EC]" />
-                </div>
-                <span className="text-xl font-black text-white">
-                  Esets<span className="text-[#D5810F]">.</span>
+            {/* Top Trust Bar / Micro Hero Section */}
+            <section className="flex flex-col px-margin-mobile pt-3 pb-4">
+              {/* Live Trust Pill */}
+              <div className="inline-flex items-center self-start gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-tertiary-fixed-dim animate-pulse"></span>
+                <span className="font-code-spec text-[10px] tracking-wider uppercase text-on-surface-variant font-semibold">
+                  DIRECT C2C REAL ESTATE • 0% BROKERAGE • ZERO MIDDLEMEN
                 </span>
               </div>
-              <p className="text-xs text-[#EADDD0]/75 leading-relaxed">
-                भारत का पहला निष्पक्ष और समर्पित C2C रियल एस्टेट डायरेक्ट मार्केटप्लेस। खरीदार और मकान मालिक के बीच शून्य ब्रोकरेज व सीधा संपर्क।
+
+              {/* Fluid Clamped Headline */}
+              <h1 className="mt-3 font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight leading-tight">
+                Buy & Sell Real Estate Directly with Owners — <span className="text-secondary font-bold">₹0 Brokerage</span>, Zero Commission.
+              </h1>
+
+              {/* Subtitle */}
+              <p className="mt-2 font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                Hyper-local direct marketplace. Skip the broker. Call or WhatsApp genuine property owners directly, schedule site visits, and close deals safely on the spot.
               </p>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#87A168]/20 text-[#87A168] text-[10px] font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 100% C2C Verified Network
-              </div>
-            </div>
 
-            {/* Column 2: Core Features */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">मुख्य फीचर्स</h4>
-              <ul className="space-y-1.5 text-xs text-[#EADDD0]/80">
-                <li>• 0% ब्रोकरेज डायरेक्ट कॉलिंग</li>
-                <li>• 'Sold It' वन-टैप कॉल स्टॉप शील्ड</li>
-                <li>• 360° वीडियो वॉकथ्रू टूर</li>
-                <li>• सैटेलाइट लोकेशन व एरिया मैप्स</li>
-                <li>• डीलर व बिल्डर प्रो सब्सक्रिप्शन</li>
-              </ul>
-            </div>
-
-            {/* Column 3: Top Sectors */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">टॉप लोकेशन्स</h4>
-              <ul className="space-y-1.5 text-xs text-[#EADDD0]/80">
-                <li>• ग्रेटर कैलाश व साउथ दिल्ली</li>
-                <li>• गोल्फ कोर्स रोड व गुरुग्राम</li>
-                <li>• जनकपुरी व वेस्ट दिल्ली</li>
-                <li>• सेक्टर 62 व 150 नोएडा</li>
-                <li>• द्वारका एक्सप्रेसवे प्रोजेक्ट्स</li>
-              </ul>
-            </div>
-
-            {/* Column 4: Contact & Anti-Fraud */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">सुरक्षा व संपर्क</h4>
-              <p className="text-xs text-[#EADDD0]/75">
-                किसी भी ऑनलाइन एडवांस फ्रॉड से बचें। सिर्फ मौके पर जाकर असली पेपर्स देखकर ही डील करें।
-              </p>
-              <div className="pt-1">
-                <button
-                  onClick={() => setIsSubscriptionModalOpen(true)}
-                  className="w-full py-2 px-3 rounded-lg bg-[#563E28] hover:bg-[#3A2818] text-[#FEF6EC] font-bold text-xs border border-[#D5810F]/30 transition"
+              {/* Action Buttons */}
+              <div className="mt-4 flex flex-col gap-2">
+                <button 
+                  onClick={() => setActiveTab("post-free")}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-lg text-label-lg font-bold shadow-[0_4px_16px_rgba(213,129,15,0.35)] active:scale-[0.99] transition-transform hover:opacity-95"
                 >
-                  डीलर पार्टनरशिप इंक्वायरी
+                  <span className="material-symbols-outlined text-[20px]">add_home</span>
+                  <span>Post Property For Free (0% Brokerage)</span>
+                </button>
+
+                <button 
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-dim transition-colors font-medium"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-secondary">verified_user</span>
+                  <span>Dealer & Builder Subscription (₹8,000/mo)</span>
                 </button>
               </div>
-            </div>
+
+              {/* 3 Luxury Micro-Trust Cards (Horizontal Carousel) */}
+              <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 -mx-margin-mobile px-margin-mobile scrollbar-none">
+                {/* Trust Card 1 */}
+                <div className="flex-shrink-0 w-[215px] p-3 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col justify-between border border-surface-container">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+                      <span className="material-symbols-outlined text-[16px]">call</span>
+                    </div>
+                    <span className="font-label-md text-label-md text-on-surface font-bold">1-Tap Direct Call</span>
+                  </div>
+                  <p className="mt-2 font-body-sm text-[11px] text-on-surface-variant leading-tight">
+                    Instant unfiltered phone calls with verified genuine owners.
+                  </p>
+                </div>
+
+                {/* Trust Card 2 */}
+                <div className="flex-shrink-0 w-[215px] p-3 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col justify-between border border-surface-container">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-error-container flex items-center justify-center text-error">
+                      <span className="material-symbols-outlined text-[16px]">gpp_bad</span>
+                    </div>
+                    <span className="font-label-md text-label-md text-on-surface font-bold">'Sold It' Call Shield</span>
+                  </div>
+                  <p className="mt-2 font-body-sm text-[11px] text-on-surface-variant leading-tight">
+                    One tap stops calls forever the minute your deal is closed.
+                  </p>
+                </div>
+
+                {/* Trust Card 3 */}
+                <div className="flex-shrink-0 w-[215px] p-3 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col justify-between border border-surface-container">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+                      <span className="material-symbols-outlined text-[16px]">security</span>
+                    </div>
+                    <span className="font-label-md text-label-md text-on-surface font-bold">100% Anti-Fraud</span>
+                  </div>
+                  <p className="mt-2 font-body-sm text-[11px] text-on-surface-variant leading-tight">
+                    Mandatory zero online advance token policy across all listings.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Sticky-styled Hyper-local Filter & Search Bar */}
+            <section className="px-margin-mobile pt-1 pb-3 flex flex-col gap-2.5">
+              {/* District Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto -mx-margin-mobile px-margin-mobile scrollbar-none py-0.5">
+                {DISTRICTS.map(dist => (
+                  <button
+                    key={dist}
+                    onClick={() => setSelectedDistrict(dist === "All Districts" ? "" : dist)}
+                    className={`flex-shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition flex items-center gap-1 ${
+                      selectedDistrict === dist || (dist === "All Districts" && !selectedDistrict)
+                        ? "bg-primary-container text-secondary-container font-semibold shadow-xs"
+                        : "bg-surface-container-high text-on-surface hover:bg-surface-dim font-medium"
+                    }`}
+                  >
+                    {(selectedDistrict === dist || (dist === "All Districts" && !selectedDistrict)) && (
+                      <span className="material-symbols-outlined text-[14px]">my_location</span>
+                    )}
+                    <span>{dist}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Input & Intent Toggle */}
+              <div className="p-2.5 rounded-xl bg-surface-container-lowest shadow-xs flex flex-col gap-2 border border-surface-container">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-low">
+                  <span className="material-symbols-outlined text-[18px] text-on-surface-variant">search</span>
+                  <input 
+                    className="w-full bg-transparent font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none"
+                    placeholder="Search by district, metro station, or locality..."
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="p-1 text-on-surface-variant hover:text-primary">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Filters: Buy/Rent Segmented Control + BHK Chips */}
+                <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
+                  {/* Intent Toggle */}
+                  <div className="inline-flex p-0.5 rounded-lg bg-surface-container text-on-surface">
+                    {["All", "Buy", "Rent"].map(intent => (
+                      <button
+                        key={intent}
+                        type="button"
+                        onClick={() => setDealIntent(intent)}
+                        className={`px-3 py-1 rounded-md font-label-md text-label-md transition ${
+                          dealIntent === intent 
+                            ? "font-semibold bg-surface-container-lowest text-primary shadow-xs" 
+                            : "font-medium text-on-surface-variant hover:text-on-surface"
+                        }`}
+                      >
+                        {intent}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* BHK Chips */}
+                  <div className="flex items-center gap-1">
+                    {["All", "1 BHK", "2 BHK", "3 BHK", "4+ BHK"].map(bhk => (
+                      <button
+                        key={bhk}
+                        onClick={() => setBhkFilter(bhk)}
+                        className={`px-2.5 py-1 rounded-md font-code-spec text-[11px] transition ${
+                          bhkFilter === bhk 
+                            ? "bg-primary-container text-secondary-container font-bold" 
+                            : "bg-surface-container text-on-surface-variant font-medium hover:bg-surface-container-high"
+                        }`}
+                      >
+                        {bhk}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Founding Members Community Counter Banner */}
+            <section className="px-margin-mobile my-1.5">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-primary-container via-primary-container to-surface-variant text-on-primary-fixed shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px] text-secondary-container">shield_with_heart</span>
+                    <div>
+                      <div className="font-label-lg text-label-lg text-secondary-container font-semibold">Direct Owner Guarantee</div>
+                      <div className="font-body-sm text-[11px] text-primary-fixed-dim">Zero Middlemen • Founding Member Intake</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-code-spec text-label-lg text-surface-bright font-bold">2,480</span>
+                    <span className="font-code-spec text-[10px] text-on-primary-container"> / 3,000</span>
+                  </div>
+                </div>
+                {/* Progress Bar */}
+                <div className="mt-2.5 w-full h-1.5 rounded-full bg-on-primary-fixed-variant overflow-hidden">
+                  <div className="h-full bg-secondary-container rounded-full" style={{ width: '82%' }}></div>
+                </div>
+                <div className="mt-1.5 flex justify-between items-center text-[10px] text-on-primary-container font-label-md">
+                  <span>82% Tier 1 Quota Claimed</span>
+                  <span className="text-secondary-fixed">520 Free Slots Remaining</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Listings Feed */}
+            <section className="px-margin-mobile mt-2 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-headline-sm text-headline-sm text-primary">Direct Listings Nearby</h2>
+                <span className="font-code-spec text-code-spec text-on-surface-variant">
+                  {filteredProperties.length} Available Now
+                </span>
+              </div>
+
+              {filteredProperties.map(property => (
+                <PropertyCard
+                  key={property.id}
+                  property={property}
+                  onSelectProperty={setSelectedProperty}
+                  isGlobalCallShieldActive={isGlobalCallShieldActive}
+                />
+              ))}
+
+              {filteredProperties.length === 0 && (
+                <div className="p-8 text-center bg-surface-container rounded-2xl">
+                  <span className="material-symbols-outlined text-[32px] text-on-surface-variant">search_off</span>
+                  <p className="font-headline-sm text-headline-sm text-primary mt-2">No Properties Found</p>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Try resetting your district or intent filters.</p>
+                  <button 
+                    onClick={() => { setSelectedDistrict(""); setDealIntent("All"); setBhkFilter("All"); setSearchQuery(""); }}
+                    className="mt-3 px-4 py-2 rounded-xl bg-primary-container text-secondary-container font-label-md"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* Hyper-Local Neighborhood Radar Card */}
+            <section className="px-margin-mobile mt-4">
+              <div className="p-3.5 rounded-xl bg-surface-container flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">explore</span>
+                    <span className="font-label-lg text-label-lg text-primary font-bold">Hyper-Local Distance Radar</span>
+                  </div>
+                  <span className="font-code-spec text-[10px] text-on-surface-variant bg-surface-container-lowest px-2 py-0.5 rounded">GPS Active</span>
+                </div>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  Every listing displays verifiable distance to local schools, metro junctions, and commercial hubs with zero fake broker landmarks.
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="px-2.5 py-1 rounded bg-surface-container-lowest font-code-spec text-[11px] text-on-surface flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px] text-secondary">subway</span> Metro: 400m
+                  </span>
+                  <span className="px-2.5 py-1 rounded bg-surface-container-lowest font-code-spec text-[11px] text-on-surface flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px] text-secondary">local_hospital</span> Hospital: 1.2km
+                  </span>
+                  <span className="px-2.5 py-1 rounded bg-surface-container-lowest font-code-spec text-[11px] text-on-surface flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px] text-secondary">school</span> High School: 650m
+                  </span>
+                </div>
+              </div>
+            </section>
 
           </div>
+        </main>
+      )}
 
-          {/* Bottom Bar */}
-          <div className="border-t border-[#563E28]/30 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[#EADDD0]/60 text-[11px]">
-            <div>
-              © 2026 Esets App. All rights reserved. Video Concept 3 Architecture.
-            </div>
-            <div className="flex items-center gap-4">
-              <span>0% Brokerage Guarantee</span>
-              <span>•</span>
-              <span>Direct C2C Marketplace</span>
-              <span>•</span>
-              <span>Anti-Fraud Protected</span>
+      {/* Tab 2: Districts */}
+      {activeTab === "districts" && (
+        <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto px-margin-mobile">
+          <div className="py-4">
+            <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">
+              Districts & Micro-Markets
+            </h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+              Select your territory to browse 100% direct owner listings with zero middleman commissions.
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {DISTRICTS.map(dist => (
+                <button
+                  key={dist}
+                  onClick={() => {
+                    setSelectedDistrict(dist === "All Districts" ? "" : dist);
+                    setActiveTab("explore");
+                  }}
+                  className={`p-3.5 rounded-xl border text-left transition flex items-center justify-between ${
+                    selectedDistrict === dist || (dist === "All Districts" && !selectedDistrict)
+                      ? "bg-primary-container text-secondary-container border-secondary-container font-bold"
+                      : "bg-surface-container-lowest text-on-surface border-surface-container hover:bg-surface-container-low"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">location_city</span>
+                    <span className="font-label-lg text-label-lg">{dist}</span>
+                  </div>
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </button>
+              ))}
             </div>
           </div>
+        </main>
+      )}
 
-        </div>
-      </footer>
+      {/* Tab 3: Post Free (3-Step Stepper) */}
+      {activeTab === "post-free" && (
+        <PostPropertyView 
+          onBack={() => setActiveTab("explore")}
+          onAddProperty={handleAddProperty}
+        />
+      )}
 
-      {/* Interactive Modals */}
-      <PropertyDetailModal
-        property={selectedProperty}
-        onClose={() => setSelectedProperty(null)}
-        onToggleSold={handleToggleSold}
-        currentUserId={currentUser?.uid}
+      {/* Tab 4: Saved */}
+      {activeTab === "saved" && (
+        <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto px-margin-mobile">
+          <div className="py-4">
+            <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">
+              Saved Property Folios
+            </h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+              Properties bookmarked for instant 1-tap owner inquiries and price drop tracking.
+            </p>
+
+            <div className="mt-4 space-y-4">
+              {savedProperties.map(property => (
+                <PropertyCard
+                  key={property.id}
+                  property={property}
+                  onSelectProperty={setSelectedProperty}
+                  isGlobalCallShieldActive={isGlobalCallShieldActive}
+                />
+              ))}
+
+              {savedProperties.length === 0 && (
+                <div className="p-8 text-center bg-surface-container rounded-2xl">
+                  <span className="material-symbols-outlined text-[32px] text-on-surface-variant">bookmark_border</span>
+                  <p className="font-headline-sm text-headline-sm text-primary mt-2">No Saved Properties</p>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Bookmark properties from the Explore feed to monitor them here.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* Tab 5: Settings (10 Compulsory Modules) */}
+      {activeTab === "settings" && (
+        <SettingsView
+          theme={theme}
+          onThemeChange={setTheme}
+          isGlobalCallShieldActive={isGlobalCallShieldActive}
+          onToggleGlobalCallShield={handleToggleGlobalCallShield}
+          onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
+          onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+        />
+      )}
+
+      {/* Fixed Bottom Navigation */}
+      <BottomNav 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
       />
 
-      <PostPropertyModal
-        isOpen={isPostModalOpen}
-        onClose={() => setIsPostModalOpen(false)}
-        onAddProperty={handleAddProperty}
-      />
+      {/* Property Folio Detail Modal */}
+      {selectedProperty && (
+        <PropertyFolioModal
+          property={selectedProperty}
+          onClose={() => setSelectedProperty(null)}
+          onToggleSold={handleToggleSold}
+          isGlobalCallShieldActive={isGlobalCallShieldActive}
+        />
+      )}
 
+      {/* Location Modal */}
       <LocationModal
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
         selectedDistrict={selectedDistrict}
-        onSelectDistrict={(district) => setSelectedDistrict(district)}
+        onSelectDistrict={setSelectedDistrict}
       />
 
-      <MyListingsModal
-        isOpen={isMyListingsOpen}
-        onClose={() => setIsMyListingsOpen(false)}
-        myProperties={myProperties}
-        onToggleSold={handleToggleSold}
-        onDeleteProperty={handleDeleteProperty}
-        onOpenPostModal={() => setIsPostModalOpen(true)}
-      />
-
+      {/* Dealer Subscription Modal */}
       <SubscriptionModal
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}
       />
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+      {/* Legal 7-Step Checklist Modal */}
+      <LegalChecklistModal
+        isOpen={isChecklistModalOpen}
+        onClose={() => setIsChecklistModalOpen(false)}
       />
-
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <MainContent />
-    </AuthProvider>
   );
 }

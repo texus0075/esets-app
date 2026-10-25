@@ -1,180 +1,176 @@
 import React from "react";
-import { 
-  MapPin, 
-  BedDouble, 
-  Maximize2, 
-  Video, 
-  PhoneCall, 
-  MessageCircle, 
-  CheckCircle2, 
-  Ban 
-} from "lucide-react";
 
-export default function PropertyCard({ property, onSelect, onCallClick }) {
-  const {
-    id,
-    title,
-    price,
-    priceUnit,
-    area,
-    bhk,
-    state,
-    district,
-    locality,
-    images,
-    videoUrl,
-    sellerName,
-    sellerPhone,
-    sellerType,
-    isSold,
-    verifiedOwner,
-    dealType,
-    postedAt,
-    views
-  } = property;
-
-  const displayImage = images && images.length > 0 
-    ? images[0] 
-    : "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80";
+export default function PropertyCard({ 
+  property, 
+  onSelectProperty,
+  isGlobalCallShieldActive = false
+}) {
+  const isSold = property.isSold || isGlobalCallShieldActive;
+  const mainImage = property.images && property.images.length > 0 ? property.images[0] : "";
 
   return (
-    <div 
-      className={`group rounded-2xl transition-all duration-200 overflow-hidden flex flex-col walnut-card ${
-        isSold 
-          ? "opacity-75 bg-[#F8F7F4] border-stone-300" 
-          : "hover:shadow-xl shadow-xs"
+    <article 
+      onClick={() => onSelectProperty(property)}
+      className={`flex flex-col rounded-xl bg-surface-container-lowest overflow-hidden shadow-sm cursor-pointer transition-all hover:shadow-md ${
+        isSold ? "opacity-90" : ""
       }`}
-      style={{ minWidth: 0 }}
     >
-      {/* Property Thumbnail with 60-30-10 Badges */}
-      <div 
-        className="relative aspect-16/10 overflow-hidden bg-[#EAE2D8] cursor-pointer" 
-        onClick={() => onSelect(property)}
-      >
-        <img
-          src={displayImage}
-          alt={title}
-          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-            isSold ? "grayscale-60" : ""
+      {/* Media Header */}
+      <div className={`relative w-full aspect-[16/10] overflow-hidden ${isSold ? "bg-surface-dim" : "bg-surface-container"}`}>
+        <img 
+          alt={property.title}
+          className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
+            isSold ? "grayscale contrast-75 brightness-90" : ""
           }`}
-          style={{ height: "190px", objectFit: "cover", width: "100%" }}
+          src={mainImage}
           loading="lazy"
         />
 
-        {/* Sold It Status Overlay */}
-        {isSold && (
-          <div className="absolute inset-0 bg-[#1B2416]/65 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-rose-600 text-white font-black text-xs sm:text-sm px-4 py-2 rounded-xl shadow-lg border-2 border-white/90 tracking-wider flex items-center gap-1.5 transform -rotate-2">
-              <Ban className="w-4 h-4" />
-              <span>बिक चुका है (SOLD OUT)</span>
+        {/* Sold Overlay */}
+        {isSold ? (
+          <>
+            <div className="absolute inset-0 bg-primary/25"></div>
+            
+            {/* Signature SOLD OUT Diagonal Ribbon */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="transform -rotate-12 bg-error text-on-error font-headline-sm text-[15px] sm:text-headline-sm font-bold tracking-widest px-4 sm:px-6 py-1.5 sm:py-2 shadow-xl flex items-center gap-1.5 sm:gap-2">
+                <span className="material-symbols-outlined text-[18px] sm:text-[22px]">verified</span>
+                DEAL CLOSED • SOLD OUT
+              </div>
             </div>
-          </div>
+
+            {/* Call Shield Active Badge */}
+            <div className="absolute top-2.5 left-2.5">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-code-spec text-[10px] font-bold uppercase shadow-sm">
+                <span className="material-symbols-outlined text-[13px]">phone_disabled</span>
+                Call Shield Active
+              </span>
+            </div>
+
+            {/* Strikethrough Price Tag */}
+            <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-surface-container-lowest/90 backdrop-blur-md">
+              <div className="font-headline-sm text-headline-sm text-on-surface-variant line-through font-bold">
+                {property.priceUnit}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Top Floating Chips */}
+            <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+              {property.verifiedOwner && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-code-spec text-[11px] font-semibold">
+                  <span className="material-symbols-outlined text-[13px]">verified</span>
+                  Verified Owner
+                </span>
+              )}
+              <span className="px-2 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-on-surface font-label-md text-[10px] font-bold uppercase">
+                {property.dealType || "Sale"}
+              </span>
+              {property.videoUrl && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-container text-surface font-label-md text-[10px] font-bold uppercase">
+                  <span className="material-symbols-outlined text-[12px] text-secondary-container">videocam</span>
+                  Video
+                </span>
+              )}
+            </div>
+
+            {/* 0% Brokerage Chip */}
+            <div className="absolute top-2.5 right-2.5">
+              <span className="px-2.5 py-1 rounded bg-primary-container text-secondary-container font-code-spec text-[10px] uppercase font-bold tracking-wider shadow-sm">
+                0% Brokerage
+              </span>
+            </div>
+
+            {/* Price Overlaid Tag */}
+            <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-surface-container-lowest/95 backdrop-blur-md shadow-sm">
+              <div className="font-headline-sm text-headline-sm text-primary font-bold">
+                {property.priceUnit}
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Top Badges */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-          <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wide text-white shadow-sm ${
-            dealType === "Rent" ? "bg-[#D5810F]" : "bg-[#87A168]"
-          }`}>
-            {dealType === "Rent" ? "किराये पर (Rent)" : "बिक्री (Sale)"}
-          </span>
-
-          {videoUrl && (
-            <span className="px-2 py-0.5 rounded-lg bg-[#1B2416]/85 backdrop-blur-xs text-[#FEF6EC] text-[10px] font-bold flex items-center gap-1 shadow-sm">
-              <Video className="w-3 h-3 text-[#D5810F]" />
-              <span>वीडियो</span>
-            </span>
-          )}
-        </div>
-
-        {images && images.length > 1 && (
-          <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-[#1B2416]/75 backdrop-blur-xs text-white text-[10px] font-bold">
-            📷 {images.length} फ़ोटो
-          </div>
-        )}
-
-        <div className="absolute bottom-2.5 left-2.5">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-white/95 backdrop-blur-xs text-[#1B2416] text-[10px] font-bold shadow-xs">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#87A168]" />
-            <span>0% ब्रोकरेज • डायरेक्ट</span>
-          </span>
-        </div>
       </div>
 
-      {/* Property Details Body */}
-      <div className="p-4 flex-1 flex flex-col justify-between" style={{ minWidth: 0 }}>
+      {/* Card Body Content */}
+      <div className="p-3.5 flex flex-col gap-2">
         <div>
-          {/* Price & Post Time */}
-          <div className="flex items-baseline justify-between gap-2 mb-1">
-            <span className="text-xl font-black text-[#1B2416] tracking-tight">
-              {priceUnit || `₹${price.toLocaleString("en-IN")}`}
-            </span>
-            <span className="text-[11px] font-medium text-[#563E28]/70">
-              {postedAt || "हाल ही में"}
-            </span>
+          <div className="flex items-center justify-between">
+            <h3 className={`font-headline-sm text-[16px] font-semibold leading-snug truncate ${isSold ? "text-on-surface-variant" : "text-primary"}`}>
+              {property.title}
+            </h3>
+            {isSold && (
+              <span className="font-code-spec text-[10px] text-error font-semibold shrink-0 ml-1">
+                0 Inquiries Accepted
+              </span>
+            )}
           </div>
-
-          {/* Title */}
-          <h3 
-            onClick={() => onSelect(property)}
-            className="font-bold text-[#1B2416] text-sm leading-snug line-clamp-2 hover:text-[#87A168] transition cursor-pointer mb-2"
-          >
-            {title}
-          </h3>
-
-          {/* Location Line */}
-          <div className="flex items-center gap-1 text-xs text-[#563E28]/80 mb-3">
-            <MapPin className="w-3.5 h-3.5 text-[#87A168] shrink-0" />
-            <span className="truncate">
-              {locality}, <strong className="text-[#1B2416]">{district}</strong>
-            </span>
-          </div>
-
-          {/* Key Specs Pill Bar */}
-          <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-[#563E28]/10 text-[#563E28]/85 mb-3">
-            <div className="flex items-center gap-1 truncate">
-              <Maximize2 className="w-3.5 h-3.5 text-[#87A168] shrink-0" />
-              <span>{area ? `${area} sq.ft` : "N/A"}</span>
-            </div>
-            <div className="flex items-center gap-1 truncate">
-              <BedDouble className="w-3.5 h-3.5 text-[#87A168] shrink-0" />
-              <span>{bhk ? `${bhk} BHK` : "लागू नहीं"}</span>
-            </div>
+          <div className="flex items-center gap-1 text-on-surface-variant font-body-sm text-[12px] mt-0.5">
+            <span className="material-symbols-outlined text-[15px] text-secondary">location_on</span>
+            <span className="truncate">{property.locality}, {property.district}</span>
           </div>
         </div>
 
-        {/* Action Triggers: Direct Owner Contact Cards */}
-        <div className="pt-1">
-          {isSold ? (
-            <div className="w-full py-2 px-3 rounded-xl bg-stone-100 text-[#563E28]/60 text-center font-bold text-xs">
-              🚫 यह प्रॉपर्टी सोल्ड हो चुकी है
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <a
-                href={`tel:${sellerPhone}`}
-                onClick={(e) => onCallClick(property, e)}
-                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-[#563E28] hover:bg-[#3A2818] text-white text-xs font-bold transition shadow-xs active:scale-95 text-center"
-                title="सीधा मालिक को कॉल करें"
-              >
-                <PhoneCall className="w-3.5 h-3.5 text-[#D5810F]" />
-                <span className="truncate">सीधा कॉल</span>
-              </a>
-
-              <a
-                href={`https://wa.me/${sellerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`नमस्ते ${sellerName}, मैंने Esets पर आपकी प्रॉपर्टी "${title}" देखी है। क्या यह अभी उपलब्ध है?`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-[#87A168] hover:bg-[#526B3C] text-white text-xs font-bold transition shadow-xs active:scale-95 text-center"
-                title="मालिक से व्हाट्सएप पर बात करें"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span className="truncate">व्हाट्सएप</span>
-              </a>
-            </div>
-          )}
+        {/* Tabular Micro Specs Data Cluster */}
+        <div className="grid grid-cols-3 gap-1.5 py-2 px-2.5 rounded-lg bg-surface-container-low text-center">
+          <div className="flex flex-col">
+            <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Super Area</span>
+            <span className="font-code-spec text-code-spec text-on-surface font-semibold">{property.area} sq.ft</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Layout</span>
+            <span className="font-code-spec text-code-spec text-on-surface font-semibold">{property.bhk} BHK</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Tenure</span>
+            <span className="font-code-spec text-code-spec text-on-surface font-semibold truncate">{property.ownership?.split(' ')[0] || "Freehold"}</span>
+          </div>
         </div>
+
+        {/* Bottom Interactive Area */}
+        {isSold ? (
+          <div className="flex flex-col gap-1.5 mt-1">
+            {/* Masked Number Micro Info */}
+            <div className="p-2 rounded-lg bg-surface-container flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-error-container text-on-error-container flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[13px]">shield</span>
+                </div>
+                <div className="font-code-spec text-[11px] text-on-surface-variant font-medium">
+                  Owner Phone: +91 98200 •••••
+                </div>
+              </div>
+              <span className="font-code-spec text-[9px] text-outline uppercase font-semibold">Protected</span>
+            </div>
+
+            {/* Shielded Interaction Replacement */}
+            <div className="w-full py-2 px-2.5 rounded-lg bg-surface-container-high text-on-surface-variant font-label-md text-[11px] flex items-center justify-center gap-1.5 text-center cursor-not-allowed">
+              <span className="material-symbols-outlined text-[15px] text-error">lock</span>
+              <span className="truncate">Property sold • Owner has frozen incoming calls</span>
+            </div>
+          </div>
+        ) : (
+          /* Twin Direct Interaction Buttons */
+          <div className="mt-1 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+            <a 
+              className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-secondary-container text-on-secondary-fixed font-label-md text-label-md font-semibold active:scale-[0.98] transition-transform hover:opacity-90 shadow-xs"
+              href={`tel:${property.sellerPhone?.replace(/\s+/g, '')}`}
+            >
+              <span className="material-symbols-outlined text-[17px]">call</span>
+              <span>Direct Call</span>
+            </a>
+            <a 
+              className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold active:scale-[0.98] transition-transform hover:bg-surface-dim shadow-xs"
+              href={`https://wa.me/${property.sellerPhone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I am interested in your ${property.title} on Esets.`)}`}
+              rel="noopener noreferrer" 
+              target="_blank"
+            >
+              <span className="material-symbols-outlined text-[17px] text-on-tertiary-container">chat</span>
+              <span>WhatsApp</span>
+            </a>
+          </div>
+        )}
       </div>
-    </div>
+    </article>
   );
 }
