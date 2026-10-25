@@ -5,7 +5,10 @@ export default function SettingsView({
   onThemeChange,
   isGlobalCallShieldActive,
   onToggleGlobalCallShield,
-  onOpenChecklistModal
+  onOpenChecklistModal,
+  currentUser,
+  onOpenAuthModal,
+  onLogout
 }) {
   const [activeCategory, setActiveCategory] = useState("theme"); // 'theme' | 'shield' | 'geo' | 'device' | 'plans'
   const [radiusKm, setRadiusKm] = useState(5);
@@ -78,30 +81,43 @@ export default function SettingsView({
 
       {/* User Profile Card */}
       <div className="p-4 rounded-2xl bg-surface-container-low border border-surface-container flex items-center justify-between gap-3 mt-2 shadow-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <img 
-            alt="Vikramaditya Rao"
-            className="w-13 h-13 rounded-full object-cover ring-2 ring-secondary-container"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDNEqxzKN8N_FTKYy49cYmujcbjsHKlO2JDm3tnzbz-IPGetcxCQ2hY-XGZnuKb2YeHYIY7sNC-ndonG2pqPJtbVXlTJitdzg2ouVetF3eshofzPIue5omHHtKh-GS8fySWsM7O7cwLDUGhPSUjrH-T2w-vP9Ng1q0DP5qmjlLvHjDPe-o4kGlnOtMoOcWIRsC3jSi9nLYPHKO8BUVrmvgiBC7H8mrYYEe-4kFQg"
+            alt={currentUser?.displayName || "User"}
+            className="w-13 h-13 rounded-full object-cover ring-2 ring-secondary-container shrink-0"
+            src={currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"}
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-headline-sm text-headline-sm text-primary font-bold">
-                Vikramaditya Rao
+              <h3 className="font-headline-sm text-headline-sm text-primary font-bold truncate">
+                {currentUser?.displayName || "Guest Visitor"}
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-primary-container text-secondary-container font-code-spec text-[10px] font-bold">
-                Direct Owner
+                {currentUser ? "Direct Owner" : "Not Signed In"}
               </span>
             </div>
-            <p className="font-body-sm text-[12px] text-on-surface-variant mt-0.5">
-              +91 98800 12345 • South Delhi
+            <p className="font-body-sm text-[12px] text-on-surface-variant mt-0.5 truncate">
+              {currentUser?.email || "Sign in to manage listings & inquiries"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-container text-secondary-container font-code-spec text-[11px] font-bold shadow-xs">
-          <span className="material-symbols-outlined text-[15px]">verified</span>
-          <span>Verified</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {currentUser ? (
+            <button 
+              onClick={onOpenAuthModal}
+              className="px-3 py-1.5 rounded-xl bg-surface-container-high hover:bg-surface-dim text-secondary font-label-md text-[11px] font-bold shadow-xs transition"
+            >
+              Switch Account
+            </button>
+          ) : (
+            <button 
+              onClick={onOpenAuthModal}
+              className="px-3.5 py-1.5 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-[12px] font-bold shadow-xs active:scale-95 transition"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,14 +1,6 @@
 import React, { useState } from "react";
-import { 
-  X, 
-  Lock, 
-  Mail, 
-  User, 
-  Phone, 
-  CheckCircle, 
-  Sparkles 
-} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import StampLogo from "./StampLogo";
 
 export default function AuthModal({ isOpen, onClose }) {
   const { login, signup, loginWithGoogle, loginAsDemo } = useAuth();
@@ -30,7 +22,7 @@ export default function AuthModal({ isOpen, onClose }) {
 
     try {
       if (isSignup) {
-        if (!name.trim()) throw new Error("कृपया अपना नाम लिखें");
+        if (!name.trim()) throw new Error("Please enter your full name.");
         await signup(email, password, name, phone);
       } else {
         await login(email, password);
@@ -38,156 +30,202 @@ export default function AuthModal({ isOpen, onClose }) {
       onClose();
     } catch (err) {
       console.error(err);
-      setError(err.message || "लॉगिन करने में समस्या हुई। कृपया दोबारा प्रयास करें।");
+      setError(err.message || "Failed to sign in. Please verify your credentials.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDemo = (role) => {
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setError("Google authentication was canceled or blocked.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoSignIn = (role) => {
     loginAsDemo(role);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-surface rounded-3xl max-w-md w-full shadow-2xl border border-surface-container overflow-hidden my-auto text-on-surface animate-in fade-in zoom-in-95 duration-150">
         
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div>
-            <h3 className="text-lg font-black text-slate-900">
-              {isSignup ? "नया अकाउंट बनाएं" : "Esets में लॉगिन करें"}
-            </h3>
-            <p className="text-xs text-slate-500">प्रॉपर्टी लिस्ट करने या ओनर से बात करने के लिए</p>
+        {/* Modal Header */}
+        <div className="p-4 border-b border-surface-container flex items-center justify-between bg-surface-container-low">
+          <div className="flex items-center gap-2.5">
+            <StampLogo className="w-7 h-7" showText={false} />
+            <div>
+              <h3 className="font-headline-sm text-headline-sm text-primary font-bold">
+                {isSignup ? "Create Free Account" : "Sign In to Esets"}
+              </h3>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">
+                100% Direct C2C Real Estate • Zero Brokerage
+              </p>
+            </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white hover:bg-slate-200 flex items-center justify-center text-slate-600 transition shadow-xs"
+            className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition"
           >
-            <X className="w-4 h-4" />
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
-            <span className="text-[11px] font-extrabold uppercase text-emerald-900 tracking-wider block flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> तुरंत टेस्ट करने के लिए 1-क्लिक लॉगिन:
+        <div className="p-5 space-y-4">
+          
+          {/* 1. Fast Google 1-Tap OAuth Button (100% Free, Zero SMS Cost) */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-surface-container-lowest border border-surface-container shadow-xs hover:bg-surface-container-low font-label-md text-label-md font-bold text-primary transition active:scale-98"
+          >
+            {/* Google Multi-Color SVG Icon */}
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          {/* 2. Instant 1-Click Demo Profiles */}
+          <div className="p-3 rounded-2xl bg-surface-container border border-surface-container-high space-y-2">
+            <span className="text-[10.5px] font-code-spec font-bold uppercase text-on-surface-variant tracking-wider flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px] text-secondary">flash_on</span>
+              <span>1-Click Instant Test Mode (No Password Needed):</span>
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleDemo("owner")}
-                className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs"
+                onClick={() => handleDemoSignIn("owner")}
+                className="py-2 px-3 rounded-xl bg-primary text-surface font-label-md text-[11.5px] font-bold shadow-xs hover:opacity-95 transition"
               >
-                🏠 ओनर (मकान मालिक)
+                🏡 Verified Owner
               </button>
               <button
                 type="button"
-                onClick={() => handleDemo("buyer")}
-                className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-xs"
+                onClick={() => handleDemoSignIn("buyer")}
+                className="py-2 px-3 rounded-xl bg-surface-container-highest text-primary font-label-md text-[11.5px] font-bold shadow-xs hover:bg-surface-dim transition"
               >
-                🔍 बायर (खरीदार)
+                🔍 Direct Buyer
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 my-2">
-            <hr className="flex-1 border-slate-200" />
-            <span className="text-[11px] font-bold text-slate-400 uppercase">या ईमेल से जारी रखें</span>
-            <hr className="flex-1 border-slate-200" />
+          {/* Divider */}
+          <div className="flex items-center gap-2">
+            <hr className="flex-1 border-surface-container" />
+            <span className="text-[10px] font-code-spec font-bold text-on-surface-variant uppercase">
+              or use email
+            </span>
+            <hr className="flex-1 border-surface-container" />
           </div>
 
+          {/* Error Notice */}
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-              {error}
+            <div className="p-2.5 rounded-xl bg-error-container text-on-error-container font-body-sm text-[12px] flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px]">error</span>
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3 text-xs sm:text-sm">
+          {/* Email / Password Form */}
+          <form onSubmit={handleSubmit} className="space-y-3">
             {isSignup && (
               <>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">पूरा नाम *</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="जैसे राजेश कुमार"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800"
-                    />
-                  </div>
+                  <label className="font-code-spec text-[10.5px] uppercase font-bold text-on-surface-variant block mb-1">
+                    Full Legal Name
+                  </label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. Vikramaditya Rao"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                  />
                 </div>
-
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">मोबाइल नंबर (कॉलिंग हेतु)</label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type="tel"
-                      placeholder="+91 98112 34567"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800"
-                    />
-                  </div>
+                  <label className="font-code-spec text-[10.5px] uppercase font-bold text-on-surface-variant block mb-1">
+                    Phone Number (Calling Shield Enabled)
+                  </label>
+                  <input 
+                    type="tel" 
+                    placeholder="+91 98800 12345"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                  />
                 </div>
               </>
             )}
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">ईमेल एड्रेस *</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800"
-                />
-              </div>
+              <label className="font-code-spec text-[10.5px] uppercase font-bold text-on-surface-variant block mb-1">
+                Email Address
+              </label>
+              <input 
+                type="email" 
+                required
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
+              />
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">पासवर्ड *</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800"
-                />
-              </div>
+              <label className="font-code-spec text-[10.5px] uppercase font-bold text-on-surface-variant block mb-1">
+                Password
+              </label>
+              <input 
+                type="password" 
+                required
+                minLength={6}
+                placeholder="Minimum 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface border border-surface-container text-body-sm text-[13px] focus:outline-none focus:ring-2 focus:ring-secondary/40"
+              />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-md shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
+              className="w-full mt-2 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-label-md font-bold shadow-xs active:scale-98 transition flex items-center justify-center gap-2"
             >
-              {loading ? "लोड हो रहा है..." : isSignup ? "साइन अप करें" : "लॉगिन करें"}
+              <span>{loading ? "Authenticating..." : (isSignup ? "Create Free Account" : "Sign In")}</span>
             </button>
           </form>
 
-          <div className="text-center pt-2">
+          {/* Toggle Login vs Signup */}
+          <div className="pt-2 text-center">
             <button
               type="button"
               onClick={() => {
                 setIsSignup(!isSignup);
                 setError("");
               }}
-              className="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition"
+              className="font-body-sm text-[12px] text-secondary font-bold hover:underline"
             >
-              {isSignup ? "पहले से अकाउंट है? लॉगिन करें" : "नया अकाउंट बनाना चाहते हैं? यहाँ क्लिक करें"}
+              {isSignup 
+                ? "Already have an account? Sign In" 
+                : "Don't have an account? Create one for free"}
             </button>
           </div>
+
         </div>
 
       </div>

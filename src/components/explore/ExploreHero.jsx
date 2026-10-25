@@ -6,44 +6,54 @@ export default function ExploreHero({
   onOpenChecklistModal
 }) {
   return (
-    <section className="flex flex-col px-margin-mobile pt-3 pb-2">
-      {/* Live Compact Trust Pill */}
-      <div className="inline-flex items-center self-start gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface shadow-xs">
-        <span className="w-2 h-2 rounded-full bg-tertiary-fixed-dim animate-pulse"></span>
-        <span className="font-code-spec text-[10.5px] tracking-wider uppercase text-on-surface-variant font-bold">
-          {HERO_CONTENT.trustPill}
-        </span>
-      </div>
+    <section className="px-margin-mobile pt-2 pb-2">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-surface-container-low border border-surface-container shadow-xs flex flex-col gap-2.5">
+        
+        {/* Top Status Row */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container text-on-surface shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-tertiary-fixed-dim animate-pulse"></span>
+            <span className="font-code-spec text-[10px] tracking-wider uppercase text-on-surface font-bold">
+              {HERO_CONTENT.trustPill}
+            </span>
+          </div>
 
-      {/* Fluid Compact Headline */}
-      <h1 className="mt-2 font-headline-lg-mobile text-[1.45rem] text-primary tracking-tight leading-snug font-bold">
-        {HERO_CONTENT.headlinePrefix}
-        <span className="text-secondary font-bold">{HERO_CONTENT.headlineHighlight}</span>
-        {HERO_CONTENT.headlineSuffix}
-      </h1>
+          <span className="font-code-spec text-[10px] text-secondary font-bold uppercase tracking-wider bg-surface-container px-2 py-0.5 rounded">
+            Freehold Deeds Only
+          </span>
+        </div>
 
-      {/* 1-Line Compact Subtitle */}
-      <p className="mt-1 font-body-sm text-[12.5px] text-on-surface-variant leading-relaxed">
-        {HERO_CONTENT.subtitle}
-      </p>
+        {/* Fluid Clamped Headline */}
+        <h1 className="font-headline-lg-mobile text-[1.28rem] sm:text-[1.5rem] text-primary tracking-tight leading-tight font-bold">
+          {HERO_CONTENT.headlinePrefix}
+          <span className="text-secondary font-bold">{HERO_CONTENT.headlineHighlight}</span>
+          {HERO_CONTENT.headlineSuffix}
+        </h1>
 
-      {/* Action Buttons */}
-      <div className="mt-3 flex flex-col sm:flex-row gap-2">
-        <button 
-          onClick={onPostProperty}
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-lg text-label-lg font-bold shadow-[0_4px_16px_rgba(213,129,15,0.3)] active:scale-[0.99] transition-transform hover:opacity-95"
-        >
-          <span className="material-symbols-outlined text-[19px]">add_home</span>
-          <span>{HERO_CONTENT.postPropertyBtnText}</span>
-        </button>
+        {/* 1-Line Compact Subtitle */}
+        <p className="font-body-sm text-[12px] text-on-surface-variant leading-relaxed">
+          {HERO_CONTENT.subtitle}
+        </p>
 
-        <button 
-          onClick={onOpenChecklistModal}
-          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-dim transition-colors font-medium text-center"
-        >
-          <span className="material-symbols-outlined text-[16px] text-secondary">fact_check</span>
-          <span>Legal Checklist</span>
-        </button>
+        {/* Action Buttons: Unified Full-Width & Proportional */}
+        <div className="pt-1 flex flex-col sm:flex-row gap-2">
+          <button 
+            onClick={onPostProperty}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-secondary-container text-on-secondary-fixed font-label-md text-label-md font-bold shadow-[0_2px_12px_rgba(213,129,15,0.25)] active:scale-[0.99] transition hover:opacity-95"
+          >
+            <span className="material-symbols-outlined text-[18px]">add_home</span>
+            <span>{HERO_CONTENT.postPropertyBtnText}</span>
+          </button>
+
+          <button 
+            onClick={onOpenChecklistModal}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-surface-container text-on-surface font-label-md text-[12px] hover:bg-surface-dim transition font-medium text-center"
+          >
+            <span className="material-symbols-outlined text-[16px] text-secondary">fact_check</span>
+            <span>Legal Checklist</span>
+          </button>
+        </div>
+
       </div>
     </section>
   );

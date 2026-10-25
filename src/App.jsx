@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 
+// Firebase Auth Context Hook
+import { useAuth } from "./context/AuthContext";
+
 // Custom Hooks for Hardware & Native Integration
 import { useGeolocation } from "./hooks/useGeolocation";
 
@@ -19,11 +22,21 @@ import SettingsView from "./components/SettingsView";
 import PropertyFolioModal from "./components/PropertyFolioModal";
 import LocationModal from "./components/LocationModal";
 import LegalChecklistModal from "./components/LegalChecklistModal";
+import AuthModal from "./components/AuthModal";
 
 // Initial Listing Data
 import { INITIAL_PROPERTIES, DISTRICTS } from "./data/mockData";
 
 export default function App() {
+  // Authentication State from Firebase
+  const { 
+    currentUser, 
+    isAuthModalOpen, 
+    openAuthModal, 
+    closeAuthModal, 
+    logout 
+  } = useAuth();
+
   // Navigation & Menu State
   const [activeTab, setActiveTab] = useState("explore");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -193,7 +206,8 @@ export default function App() {
       id: `prop-${Date.now()}`,
       postedAt: "Listed Just now",
       views: 1,
-      sellerName: "Vikramaditya Rao",
+      sellerName: currentUser?.displayName || "Vikramaditya Rao",
+      sellerPhone: currentUser?.phoneNumber || "+91 98800 12345",
       verifiedOwner: true
     };
     setProperties(prev => [created, ...prev]);
@@ -289,12 +303,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-fixed">
       
-      {/* 1. Global Navigation Bar */}
+      {/* 1. Global Navigation Bar with Firebase User Profile */}
       <Navbar
         selectedDistrict={currentLocationLabel}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
         onNavigateToSettings={() => setActiveTab("settings")}
         onOpenMenu={() => setIsMenuOpen(true)}
+        currentUser={currentUser}
+        onOpenAuthModal={openAuthModal}
       />
 
       {/* 2. Slide-over Left Navigation Drawer */}
@@ -310,6 +326,8 @@ export default function App() {
         onToggleGlobalCallShield={handleToggleGlobalCallShield}
         onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
         myPropertyCount={myProperties.length}
+        currentUser={currentUser}
+        onOpenAuthModal={openAuthModal}
       />
 
       {/* 3. Modular Tab Views Routing */}
@@ -373,6 +391,9 @@ export default function App() {
           isGlobalCallShieldActive={isGlobalCallShieldActive}
           onToggleGlobalCallShield={handleToggleGlobalCallShield}
           onOpenChecklistModal={() => setIsChecklistModalOpen(true)}
+          currentUser={currentUser}
+          onOpenAuthModal={openAuthModal}
+          onLogout={logout}
         />
       )}
 
@@ -410,6 +431,12 @@ export default function App() {
       <LegalChecklistModal
         isOpen={isChecklistModalOpen}
         onClose={() => setIsChecklistModalOpen(false)}
+      />
+
+      {/* Firebase Authentication Modal (Google 1-Tap OAuth + Email/Password + Demo) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={closeAuthModal}
       />
     </div>
   );

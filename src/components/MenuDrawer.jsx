@@ -13,7 +13,9 @@ export default function MenuDrawer({
   isGlobalCallShieldActive,
   onToggleGlobalCallShield,
   onOpenChecklistModal,
-  myPropertyCount = 1
+  myPropertyCount = 1,
+  currentUser,
+  onOpenAuthModal
 }) {
   if (!isOpen) return null;
 
@@ -42,21 +44,34 @@ export default function MenuDrawer({
         </div>
 
         {/* User Card */}
-        <div className="p-4 bg-surface-container flex items-center gap-3">
-          <img 
-            alt="User Avatar"
-            className="w-11 h-11 rounded-full object-cover ring-2 ring-secondary-container"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDNEqxzKN8N_FTKYy49cYmujcbjsHKlO2JDm3tnzbz-IPGetcxCQ2hY-XGZnuKb2YeHYIY7sNC-ndonG2pqPJtbVXlTJitdzg2ouVetF3eshofzPIue5omHHtKh-GS8fySWsM7O7cwLDUGhPSUjrH-T2w-vP9Ng1q0DP5qmjlLvHjDPe-o4kGlnOtMoOcWIRsC3jSi9nLYPHKO8BUVrmvgiBC7H8mrYYEe-4kFQg"
-          />
-          <div className="min-w-0 flex-1">
-            <h4 className="font-label-lg text-label-lg font-bold text-primary truncate">
-              Vikramaditya Rao
-            </h4>
-            <div className="flex items-center gap-1 text-[11px] font-code-spec text-secondary">
-              <span className="material-symbols-outlined text-[13px]">verified</span>
-              <span>Direct Owner (0% Brok.)</span>
+        <div className="p-4 bg-surface-container flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <img 
+              alt="User Avatar"
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-secondary-container shrink-0"
+              src={currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"}
+            />
+            <div className="min-w-0 flex-1">
+              <h4 className="font-label-lg text-label-lg font-bold text-primary truncate">
+                {currentUser?.displayName || "Guest Visitor"}
+              </h4>
+              <div className="flex items-center gap-1 text-[11px] font-code-spec text-secondary">
+                <span className="material-symbols-outlined text-[13px]">verified</span>
+                <span>{currentUser ? "Verified Member" : "Not Signed In"}</span>
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              onOpenAuthModal();
+              onClose();
+            }}
+            title="Switch Account or Sign In"
+            className="shrink-0 p-1.5 rounded-lg bg-surface-container-high hover:bg-surface-dim text-secondary text-[10.5px] font-bold"
+          >
+            {currentUser ? "Switch" : "Sign In"}
+          </button>
         </div>
 
         {/* Categories Section */}
