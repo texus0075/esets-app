@@ -63,6 +63,9 @@ export const subscribeToProperties = (onUpdate) => {
 
         saveCachedProperties(merged);
         if (onUpdate) onUpdate(merged);
+      } else {
+        const cached = getCachedProperties();
+        if (onUpdate) onUpdate(cached);
       }
     }, (error) => {
       console.warn("Firestore realtime live sync warning (using cached database):", error.message);
