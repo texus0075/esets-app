@@ -46,14 +46,18 @@ export const subscribeProperties = (onUpdate, onError) => {
     const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        const items = snapshot.docs.map(doc => ({
+        const liveItems = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        saveCachedProperties(items);
-        onUpdate(items);
+        // Merge with sample catalog so user has a rich marketplace alongside live listings
+        const firestoreIds = new Set(liveItems.map(i => i.id));
+        const sampleCatalog = INITIAL_PROPERTIES.filter(p => !firestoreIds.has(p.id));
+        const combined = [...liveItems, ...sampleCatalog];
+        saveCachedProperties(combined);
+        onUpdate(combined);
       } else {
-        // First time initialization with initial seed data
+        // Fallback to local cache / seed data
         const cached = getCachedProperties();
         onUpdate(cached);
       }
@@ -79,12 +83,15 @@ export const fetchProperties = async () => {
     const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
-      const items = snapshot.docs.map(doc => ({
+      const liveItems = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      saveCachedProperties(items);
-      return items;
+      const firestoreIds = new Set(liveItems.map(i => i.id));
+      const sampleCatalog = INITIAL_PROPERTIES.filter(p => !firestoreIds.has(p.id));
+      const combined = [...liveItems, ...sampleCatalog];
+      saveCachedProperties(combined);
+      return combined;
     }
   } catch (error) {
     console.warn("Firestore fetch error, falling back to local database:", error.message);
@@ -94,9 +101,13 @@ export const fetchProperties = async () => {
 
 // Create a new property listing with permanent persistence
 export const createProperty = async (propertyData, userId) => {
+  if (!userId || userId === "guest-user") {
+    throw new Error("प्रॉपर्टी पब्लिश करने के लिए कृपया पहले लॉगिन करें।");
+  }
+
   const newProp = {
     ...propertyData,
-    userId: userId || "guest-user",
+    userId: userId,
     createdAt: new Date().toISOString(),
     isSold: false,
     views: 1,
@@ -109,9 +120,10 @@ export const createProperty = async (propertyData, userId) => {
       serverTime: serverTimestamp()
     });
     newProp.id = docRef.id;
+    console.log("Property successfully written to Cloud Firestore! ID:", docRef.id);
   } catch (error) {
-    console.warn("Firestore write error, saving locally:", error.message);
-    newProp.id = "local-" + Date.now();
+    console.error("Firestore write error:", error);
+    throw error;
   }
 
   // Update local cache

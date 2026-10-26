@@ -218,6 +218,12 @@ export default function App() {
   };
 
   const handleAddProperty = async (newProperty) => {
+    if (!currentUser) {
+      alert("कृपया प्रॉपर्टी पब्लिश करने के लिए पहले लॉगिन करें (Sign In / Register)");
+      openAuthModal();
+      return;
+    }
+
     const payload = {
       ...newProperty,
       postedAt: "Listed Just now",
@@ -227,14 +233,14 @@ export default function App() {
       verifiedOwner: true
     };
     try {
-      const created = await createProperty(payload, currentUser?.uid);
+      const created = await createProperty(payload, currentUser.uid);
       setProperties(prev => [created, ...prev.filter(p => p.id !== created.id)]);
       setMyPropertyIds(prev => [created.id, ...prev.filter(id => id !== created.id)]);
       alert("🎉 आपकी प्रॉपर्टी 0% ब्रोकरेज के साथ लाइव पब्लिश हो गई है और क्लाउड फायरबेस पर सिंक हो चुकी है!");
       setActiveTab("my-listings");
     } catch (err) {
       console.error("Property publishing error:", err);
-      alert("प्रॉपर्टी पब्लिश करने में समस्या आई, कृपया पुनः प्रयास करें।");
+      alert("प्रॉपर्टी पब्लिश करने में समस्या आई: " + (err.message || "कृपया पुनः प्रयास करें।"));
     }
   };
 
@@ -312,8 +318,11 @@ export default function App() {
   }, [properties, savedIds]);
 
   const myProperties = useMemo(() => {
+    if (currentUser?.uid) {
+      return properties.filter(p => p.userId === currentUser.uid || myPropertyIds.includes(p.id));
+    }
     return properties.filter(p => myPropertyIds.includes(p.id));
-  }, [properties, myPropertyIds]);
+  }, [properties, myPropertyIds, currentUser]);
 
   // Determine current active location label for Navbar
   const currentLocationLabel = useMemo(() => {

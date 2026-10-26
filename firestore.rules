@@ -8,59 +8,60 @@ service cloud.firestore {
     //
     // Collection: properties
     // Document ID: auto-generated or custom property ID string
-    // Fields:
-    //   - title: string (required, 3-200 chars) - Property title / headline
+    // Required Fields:
+    //   - title: string (required, 1-300 chars) - Property headline/title
     //   - price: number (required, > 0 and <= 100,000,000,000) - Price in INR
-    //   - locality: string (required, 1-200 chars) - Neighborhood / street address
-    //   - district: string (required, 1-100 chars) - District name
-    //   - state: string (required, 1-100 chars) - State name
     //   - userId: string (required, 1-128 chars, immutable) - Creator's Firebase Auth UID
-    //   - isSold: bool (optional, default false) - 'Sold It' Call Shield toggle (Owner-only)
-    //   - soldAt: string | timestamp | null (optional) - Timestamp string/object when marked sold
-    //   - views: number (optional, >= 0) - Listing view counter (atomic increment allowed)
-    //   - category: string (optional, 1-100 chars) - Property category (Villa, Flat, etc.)
-    //   - dealType: string (optional, 1-50 chars) - Sale / Rent / Lease
-    //   - priceUnit: string (optional, 1-50 chars) - Human-formatted price (e.g. '₹1.25 Cr')
-    //   - pricePerSqft: string (optional, 1-50 chars) - Price per square foot
-    //   - savingsBrokerage: string (optional, 1-100 chars) - Estimated brokerage saved
-    //   - area: number (optional, >= 0 and <= 10,000,000) - Total/Super area
-    //   - carpetArea: number (optional, >= 0 and <= 10,000,000) - Usable carpet area
-    //   - bhk: number (optional, >= 0 and <= 100) - Bedroom count
-    //   - bathrooms: number (optional, >= 0 and <= 100) - Bathroom count
-    //   - facing: string (optional, 1-100 chars) - Directional orientation
-    //   - ownership: string (optional, 1-100 chars) - Ownership deed type (Freehold, etc.)
-    //   - pincode: string (optional, 1-20 chars) - Postal code
-    //   - description: string (optional, 0-10,000 chars) - Detailed description
-    //   - images: list of strings (optional, max 30 items) - Photos of property
-    //   - videoUrl: string | null (optional, max 2000 chars) - Video tour URL
-    //   - sellerName: string (optional, 1-100 chars) - Owner contact name
-    //   - sellerPhone: string (optional, 1-30 chars) - Owner direct telephone
-    //   - sellerType: string (optional, 1-50 chars) - Direct Owner badge
-    //   - sellerAvatar: string (optional, 1-2000 chars) - Profile photo URL
-    //   - postedAt: string (optional, 1-100 chars) - Human readable listed time
-    //   - verifiedOwner: bool (optional) - Verification flag
-    //   - has360: bool (optional) - 360 virtual tour availability
-    //   - furnishing: string (optional, 1-100 chars) - Furnishing status
-    //   - floorLevel: string (optional, 1-100 chars) - Floor level
-    //   - coords: string (optional, 1-100 chars) - GPS Coordinates
-    //   - callingHours: string (optional, 1-100 chars) - Permitted contact hours
-    //   - createdAt: string | timestamp (optional, immutable) - Creation timestamp
+    // Optional Fields (Empty strings "" and null are explicitly permitted):
+    //   - locality: string (optional, <= 300 chars) - Locality / neighborhood name
+    //   - district: string (optional, <= 200 chars) - District name
+    //   - state: string (optional, <= 200 chars) - State name
+    //   - pincode: string | number (optional, string <= 30 chars or non-negative number) - Postal code
+    //   - category: string (optional, <= 200 chars) - Property category (Houses & Villas, Flats, etc.)
+    //   - dealType: string (optional, <= 100 chars) - Sale / Rent / Lease
+    //   - priceUnit: string (optional, <= 100 chars) - Display price (e.g. '₹1.25 Cr')
+    //   - pricePerSqft: string (optional, <= 100 chars) - Formatted price per sq.ft
+    //   - savingsBrokerage: string (optional, <= 200 chars) - Calculated brokerage savings
+    //   - area: number (optional, 0 - 100,000,000) - Super / built-up area
+    //   - carpetArea: number (optional, 0 - 100,000,000) - Carpet area
+    //   - bhk: number (optional, 0 - 1,000) - Number of bedrooms
+    //   - bathrooms: number (optional, 0 - 1,000) - Number of bathrooms
+    //   - facing: string (optional, <= 200 chars) - Direction / Vastu orientation
+    //   - ownership: string (optional, <= 200 chars) - Title deed / freehold type
+    //   - description: string (optional, <= 20,000 chars) - Full property description
+    //   - images: list (optional, <= 50 items) - Photos and media URLs
+    //   - videoUrl: string (optional, <= 3,000 chars) - Video tour URL
+    //   - sellerName: string (optional, <= 200 chars) - Contact person / owner name
+    //   - sellerPhone: string (optional, <= 50 chars) - Direct telephone / contact number
+    //   - sellerType: string (optional, <= 100 chars) - Direct owner verification badge
+    //   - sellerAvatar: string (optional, <= 3,000 chars) - Profile / avatar photo URL
+    //   - postedAt: string (optional, <= 200 chars) - Formatted posting date
+    //   - isSold: bool (optional) - 'Sold It' Call Shield toggle flag
+    //   - soldAt: string | timestamp (optional) - Timestamp when marked sold
+    //   - verifiedOwner: bool (optional) - Direct owner verification status
+    //   - has360: bool (optional) - 360 virtual tour flag
+    //   - furnishing: string (optional, <= 200 chars) - Furnishing status
+    //   - floorLevel: string (optional, <= 200 chars) - Floor level
+    //   - coords: string (optional, <= 200 chars) - GPS coordinates string
+    //   - callingHours: string (optional, <= 200 chars) - Allowed calling window
+    //   - landmarks: list (optional, <= 50 items) - Contextual landmark cards
+    //   - views: number (optional, >= 0) - Listing view counter
+    //   - createdAt: string | timestamp (optional, immutable) - Creation time
     //   - serverTime: timestamp (optional, immutable) - Server timestamp
-    //   - landmarks: list (optional, max 20 items) - Nearby landmark cards
-    //   - id: string (optional, 1-100 chars, immutable) - Client identifier mirror
+    //   - id: string (optional, <= 200 chars, immutable) - Client identifier mirror
     //
     // Collection: users
     // Document ID: userId (must match request.auth.uid)
     // Fields:
     //   - uid: string (required, 1-128 chars, immutable) - Firebase Auth UID
-    //   - email: string (required, 1-100 chars) - Verified email format
-    //   - displayName: string (optional, 1-100 chars) - User's full name
-    //   - phoneNumber: string (optional, 1-30 chars) - User's contact number
-    //   - photoURL: string (optional, 1-2000 chars) - Avatar URL
-    //   - role: string (optional, 'owner' | 'buyer' | 'user') - Standard role (no privilege escalation)
-    //   - verified: bool (optional) - Status badge
-    //   - createdAt: string | timestamp (optional, immutable) - Creation time
-    //   - updatedAt: string | timestamp (optional) - Update time
+    //   - email: string (required, valid email, <= 150 chars) - User's email
+    //   - displayName: string (optional, <= 200 chars) - Full name
+    //   - phoneNumber: string (optional, <= 50 chars) - Contact phone number
+    //   - photoURL: string (optional, <= 3,000 chars) - Avatar URL
+    //   - role: string (optional, 'owner' | 'buyer' | 'user') - Standard role
+    //   - verified: bool (optional) - Account status badge
+    //   - createdAt: string | timestamp (optional, immutable) - Creation timestamp
+    //   - updatedAt: string | timestamp (optional) - Update timestamp
     //
     // ===============================================================
 
@@ -76,33 +77,54 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function hasRequiredFields(data, requiredKeys) {
-      return data.keys().hasAll(requiredKeys);
-    }
-
-    function hasOnlyAllowedFields(data, allowedKeys) {
-      return data.keys().hasOnly(allowedKeys);
-    }
-
-    function isValidOptionalString(data, field, minLen, maxLen) {
-      return !(field in data) ||
-             (data[field] is string && data[field].size() >= minLen && data[field].size() <= maxLen);
-    }
-
-    function isValidOptionalNullableString(data, field, maxLen) {
+    // Allows empty strings (""), non-empty strings up to maxLen, or null
+    function isValidOptionalString(data, field, maxLen) {
       return !(field in data) ||
              data[field] == null ||
              (data[field] is string && data[field].size() <= maxLen);
     }
 
+    // Allows null or numeric values within [minVal, maxVal]
     function isValidOptionalNumber(data, field, minVal, maxVal) {
       return !(field in data) ||
+             data[field] == null ||
              (data[field] is number && data[field] >= minVal && data[field] <= maxVal);
     }
 
+    // Allows null or boolean values
+    function isValidOptionalBool(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is bool;
+    }
+
+    // Allows null or lists up to maxSize items
+    function isValidOptionalList(data, field, maxSize) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is list && data[field].size() <= maxSize);
+    }
+
+    // Allows null, Firestore timestamp, or date string up to 100 chars
+    function isValidOptionalTimestampOrString(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is timestamp ||
+             (data[field] is string && data[field].size() <= 100);
+    }
+
+    // Allows string or number for postal pincode, or null
+    function isValidOptionalPincode(data) {
+      return !('pincode' in data) ||
+             data.pincode == null ||
+             (data.pincode is string && data.pincode.size() <= 30) ||
+             (data.pincode is number && data.pincode >= 0);
+    }
+
+    // Validates email address format and length
     function isValidEmail(email) {
       return email is string &&
-             email.size() <= 100 &&
+             email.size() <= 150 &&
              email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
     }
 
@@ -111,63 +133,59 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidProperty(data) {
-      return hasRequiredFields(data, ['title', 'price', 'locality', 'district', 'state', 'userId']) &&
-             hasOnlyAllowedFields(data, [
-               'title', 'price', 'locality', 'district', 'state', 'userId',
-               'category', 'dealType', 'priceUnit', 'pricePerSqft', 'savingsBrokerage',
-               'area', 'carpetArea', 'bhk', 'bathrooms', 'facing', 'ownership',
-               'pincode', 'description', 'images', 'videoUrl', 'sellerName',
-               'sellerPhone', 'sellerType', 'sellerAvatar', 'postedAt', 'isSold',
-               'soldAt', 'verifiedOwner', 'has360', 'furnishing', 'floorLevel',
-               'coords', 'callingHours', 'views', 'createdAt', 'serverTime',
-               'landmarks', 'id'
-             ]) &&
-             // Core mandatory fields
-             data.title is string && data.title.size() >= 3 && data.title.size() <= 200 &&
+      return ('title' in data) &&
+             ('price' in data) &&
+             ('userId' in data) &&
+             // Mandatory fields validation
+             data.title is string && data.title.size() > 0 && data.title.size() <= 300 &&
              data.price is number && data.price > 0 && data.price <= 100000000000 &&
-             data.locality is string && data.locality.size() >= 1 && data.locality.size() <= 200 &&
-             data.district is string && data.district.size() >= 1 && data.district.size() <= 100 &&
-             data.state is string && data.state.size() >= 1 && data.state.size() <= 100 &&
-             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
-             // Optional metadata fields with strict bounds
-             isValidOptionalString(data, 'category', 1, 100) &&
-             isValidOptionalString(data, 'dealType', 1, 50) &&
-             isValidOptionalString(data, 'priceUnit', 1, 50) &&
-             isValidOptionalString(data, 'pricePerSqft', 1, 50) &&
-             isValidOptionalString(data, 'savingsBrokerage', 1, 100) &&
-             isValidOptionalNumber(data, 'area', 0, 10000000) &&
-             isValidOptionalNumber(data, 'carpetArea', 0, 10000000) &&
-             isValidOptionalNumber(data, 'bhk', 0, 100) &&
-             isValidOptionalNumber(data, 'bathrooms', 0, 100) &&
-             isValidOptionalString(data, 'facing', 1, 100) &&
-             isValidOptionalString(data, 'ownership', 1, 100) &&
-             isValidOptionalString(data, 'pincode', 1, 20) &&
-             isValidOptionalString(data, 'description', 0, 10000) &&
-             (!('images' in data) || (data.images is list && data.images.size() <= 30)) &&
-             isValidOptionalNullableString(data, 'videoUrl', 2000) &&
-             isValidOptionalString(data, 'sellerName', 1, 100) &&
-             isValidOptionalString(data, 'sellerPhone', 1, 30) &&
-             isValidOptionalString(data, 'sellerType', 1, 50) &&
-             isValidOptionalString(data, 'sellerAvatar', 1, 2000) &&
-             isValidOptionalString(data, 'postedAt', 1, 100) &&
-             (!('isSold' in data) || data.isSold is bool) &&
-             (!('soldAt' in data) || data.soldAt == null || data.soldAt is string || data.soldAt is timestamp) &&
-             (!('verifiedOwner' in data) || data.verifiedOwner is bool) &&
-             (!('has360' in data) || data.has360 is bool) &&
-             isValidOptionalString(data, 'furnishing', 1, 100) &&
-             isValidOptionalString(data, 'floorLevel', 1, 100) &&
-             isValidOptionalString(data, 'coords', 1, 100) &&
-             isValidOptionalString(data, 'callingHours', 1, 100) &&
-             (!('views' in data) || (data.views is number && data.views >= 0)) &&
-             (!('createdAt' in data) || data.createdAt is string || data.createdAt is timestamp) &&
-             (!('serverTime' in data) || data.serverTime is timestamp) &&
-             (!('landmarks' in data) || (data.landmarks is list && data.landmarks.size() <= 20)) &&
-             isValidOptionalString(data, 'id', 1, 100);
+             data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             // Optional string fields (empty strings "" and null are fully supported)
+             isValidOptionalString(data, 'locality', 300) &&
+             isValidOptionalString(data, 'district', 200) &&
+             isValidOptionalString(data, 'state', 200) &&
+             isValidOptionalString(data, 'category', 200) &&
+             isValidOptionalString(data, 'dealType', 100) &&
+             isValidOptionalString(data, 'priceUnit', 100) &&
+             isValidOptionalString(data, 'pricePerSqft', 100) &&
+             isValidOptionalString(data, 'savingsBrokerage', 200) &&
+             isValidOptionalString(data, 'facing', 200) &&
+             isValidOptionalString(data, 'ownership', 200) &&
+             isValidOptionalString(data, 'description', 20000) &&
+             isValidOptionalString(data, 'videoUrl', 3000) &&
+             isValidOptionalString(data, 'sellerName', 200) &&
+             isValidOptionalString(data, 'sellerPhone', 50) &&
+             isValidOptionalString(data, 'sellerType', 100) &&
+             isValidOptionalString(data, 'sellerAvatar', 3000) &&
+             isValidOptionalString(data, 'postedAt', 200) &&
+             isValidOptionalString(data, 'furnishing', 200) &&
+             isValidOptionalString(data, 'floorLevel', 200) &&
+             isValidOptionalString(data, 'coords', 200) &&
+             isValidOptionalString(data, 'callingHours', 200) &&
+             isValidOptionalString(data, 'id', 200) &&
+             isValidOptionalPincode(data) &&
+             // Optional numeric specifications
+             isValidOptionalNumber(data, 'area', 0, 100000000) &&
+             isValidOptionalNumber(data, 'carpetArea', 0, 100000000) &&
+             isValidOptionalNumber(data, 'bhk', 0, 1000) &&
+             isValidOptionalNumber(data, 'bathrooms', 0, 1000) &&
+             isValidOptionalNumber(data, 'views', 0, 1000000000) &&
+             // Optional boolean flags
+             isValidOptionalBool(data, 'isSold') &&
+             isValidOptionalBool(data, 'verifiedOwner') &&
+             isValidOptionalBool(data, 'has360') &&
+             // Optional list fields
+             isValidOptionalList(data, 'images', 50) &&
+             isValidOptionalList(data, 'landmarks', 50) &&
+             // Optional timestamps and date fields
+             isValidOptionalTimestampOrString(data, 'createdAt') &&
+             isValidOptionalTimestampOrString(data, 'soldAt') &&
+             isValidOptionalTimestampOrString(data, 'serverTime');
     }
 
     function isValidPropertyUpdate() {
       return isValidProperty(request.resource.data) &&
-             // Protect immutable fields from tampering
+             // Protect immutable fields from unauthorized changes on update
              request.resource.data.userId == resource.data.userId &&
              (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
              (!('id' in resource.data) || request.resource.data.id == resource.data.id) &&
@@ -176,12 +194,12 @@ service cloud.firestore {
 
     function isViewsIncrementOnly() {
       // Allows anyone viewing the property to increment the view counter atomically by +1
-      // Strictly forbids modifying any other fields (such as isSold, price, userId, etc.)
+      // Strictly forbids modifying any other fields (such as price, isSold, userId, etc.)
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) &&
              request.resource.data.views is number &&
              (('views' in resource.data && resource.data.views is number) ?
-               request.resource.data.views == resource.data.views + 1 :
-               request.resource.data.views == 1);
+               (request.resource.data.views == resource.data.views + 1) :
+               (request.resource.data.views == 1));
     }
 
     // ===============================================================
@@ -189,21 +207,19 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasRequiredFields(data, ['uid', 'email']) &&
-             hasOnlyAllowedFields(data, [
-               'uid', 'email', 'displayName', 'phoneNumber', 'photoURL',
-               'role', 'verified', 'createdAt', 'updatedAt'
-             ]) &&
-             data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+      return ('uid' in data) &&
+             ('email' in data) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() <= 128 &&
              isValidEmail(data.email) &&
-             isValidOptionalString(data, 'displayName', 1, 100) &&
-             isValidOptionalString(data, 'phoneNumber', 1, 30) &&
-             isValidOptionalString(data, 'photoURL', 1, 2000) &&
+             // Optional user details (empty string "" and null are allowed)
+             isValidOptionalString(data, 'displayName', 200) &&
+             isValidOptionalString(data, 'phoneNumber', 50) &&
+             isValidOptionalString(data, 'photoURL', 3000) &&
              // Prevent privilege escalation: only standard unprivileged roles permitted
-             (!('role' in data) || (data.role in ['owner', 'buyer', 'user'])) &&
-             (!('verified' in data) || data.verified is bool) &&
-             (!('createdAt' in data) || data.createdAt is string || data.createdAt is timestamp) &&
-             (!('updatedAt' in data) || data.updatedAt is string || data.updatedAt is timestamp);
+             (!('role' in data) || data.role in ['owner', 'buyer', 'user']) &&
+             isValidOptionalBool(data, 'verified') &&
+             isValidOptionalTimestampOrString(data, 'createdAt') &&
+             isValidOptionalTimestampOrString(data, 'updatedAt');
     }
 
     function isValidUserCreate(userId) {
@@ -223,9 +239,9 @@ service cloud.firestore {
     // Collection Rules
     // ===============================================================
 
-    // Properties Collection
+    // Properties Collection (Real Estate Marketplace)
     match /properties/{propertyId} {
-      // 1. Anyone can browse, search, and list properties in the public C2C marketplace
+      // 1. Anyone can browse and search real estate listings
       allow read: if true;
 
       // 2. Authenticated users can create listings, binding ownership to their auth UID
@@ -233,25 +249,25 @@ service cloud.firestore {
                        request.resource.data.userId == request.auth.uid &&
                        isValidProperty(request.resource.data);
 
-      // 3. Updates: Listing owner can update their property (including 'isSold' toggle),
-      //    OR any user can increment the views/analytics counter atomically
+      // 3. Updates: Listing owner can update their property details and 'isSold' toggle,
+      //    OR any user (logged in or guest) can increment the listing's view counter by +1
       allow update: if (isOwner(resource.data.userId) && isValidPropertyUpdate()) ||
                        isViewsIncrementOnly();
 
-      // 4. Deletions: Only the listing owner can delete their property
+      // 4. Deletions: Only the creator of the property can delete it
       allow delete: if isOwner(resource.data.userId);
     }
 
-    // Users Collection (Private Profiles & PII Protection)
+    // Users Collection (Private Profiles & User Identity)
     match /users/{userId} {
-      // Strict ownership boundary: Users can only read and write their own document
+      // Strict ownership boundary: Users can only read, create, and update their own document
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUserCreate(userId);
       allow update: if isOwner(userId) && isValidUserUpdate(userId);
       allow delete: if isOwner(userId);
     }
 
-    // Default Deny: Deny all other access across unspecified collections
+    // Catch-all Default Deny: Deny all access across any other collections
     match /{document=**} {
       allow read, write: if false;
     }
