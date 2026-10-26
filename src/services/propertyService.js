@@ -133,15 +133,11 @@ export const createProperty = async (propertyData, userId) => {
     userId: userId,
     createdAt: new Date().toISOString(),
     isSold: false,
-    views: 1,
     verifiedOwner: true
   };
 
   try {
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...newProp,
-      serverTime: serverTimestamp()
-    });
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), newProp);
     newProp.id = docRef.id;
     console.log("Property successfully written to Cloud Firestore! ID:", docRef.id);
   } catch (error) {

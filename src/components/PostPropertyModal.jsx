@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   X, 
   Upload, 
@@ -9,11 +9,17 @@ import {
   Image as ImageIcon, 
   Sparkles,
   Phone,
-  Building2
+  Building2,
+  Camera,
+  Trash2,
+  Loader2,
+  ShieldCheck,
+  Link as LinkIcon
 } from "lucide-react";
 import { LOCATIONS } from "../data/locations";
 import { formatIndianPriceToWords } from "../services/indianRealEstateCalculatorService";
 import { useAuth } from "../context/AuthContext";
+import { compressImageFile, applyWatermarkToCanvas } from "../services/imageAnalyzerService";
 
 export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
   const { currentUser } = useAuth();
@@ -36,11 +42,13 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
   const [pincode, setPincode] = useState("");
   const [description, setDescription] = useState("");
 
-  const [imageUrls, setImageUrls] = useState([
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
-  ]);
+  const [imageUrls, setImageUrls] = useState([]);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState("");
+  const fileInputRef = useRef(null);
 
   const [sellerName, setSellerName] = useState(currentUser?.displayName || "");
   const [sellerPhone, setSellerPhone] = useState(currentUser?.phoneNumber || "+91 98112 34567");
@@ -64,10 +72,47 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
     return `₹${num.toLocaleString("en-IN")}`;
   };
 
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (imageUrls.length + files.length > 6) {
+      alert("आप एक विज्ञापन के लिए अधिकतम 6 असली फ़ोटो अपलोड कर सकते हैं।");
+      return;
+    }
+
+    setIsCompressing(true);
+    try {
+      const processed = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setCompressionProgress(`फ़ोटो ${i + 1}/${files.length} कंप्रेस एवं 0% ब्रोकरेज वाटरमार्क हो रही है...`);
+        // High quality web worker/canvas compression down to ~40-60KB
+        const compressed = await compressImageFile(file, 960, 720, 0.72);
+        // Anti-theft watermark protection stamp
+        const watermarked = await applyWatermarkToCanvas(
+          compressed,
+          "ESETS 0% BROKERAGE",
+          dealType === "Rent" ? "RENTAL DIRECT" : "FREEHOLD DEED"
+        );
+        processed.push(watermarked);
+      }
+      setImageUrls(prev => [...prev, ...processed]);
+    } catch (err) {
+      console.error("Image processing error:", err);
+      alert("फ़ोटो प्रोसेस करने में समस्या आई: " + (err.message || "कृपया दूसरी फ़ोटो चुनें"));
+    } finally {
+      setIsCompressing(false);
+      setCompressionProgress("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleAddImage = () => {
     if (newImageUrl.trim()) {
       setImageUrls([...imageUrls, newImageUrl.trim()]);
       setNewImageUrl("");
+      setShowUrlInput(false);
     }
   };
 
@@ -417,46 +462,139 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
           </div>
 
           <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <span className="font-extrabold text-slate-900 block text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-4 h-4 text-slate-600" /> फोटो और वीडियो टूर
-            </span>
-
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {imageUrls.map((url, i) => (
-                <div key={i} className="relative w-20 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-200 group">
-                  <img src={url} alt="prop" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(i)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center text-xs opacity-80 hover:opacity-100"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-emerald-600" /> असली फ़ोटो अपलोड करें (100% Free Real Storage)
+              </span>
+              <span className="text-[11px] font-bold text-slate-500">
+                {imageUrls.length}/6 फ़ोटो
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="url"
-                placeholder="फोटो का इमेज URL डालें (उदा. https://...)"
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-              />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shrink-0"
-              >
-                + फ़ोटो जोड़ें
-              </button>
+            {/* Hidden File Input for Gallery / Camera */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* Interactive Upload Box */}
+            <div
+              onClick={() => !isCompressing && fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                isCompressing
+                  ? "border-emerald-400 bg-emerald-50/50 cursor-wait"
+                  : "border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 bg-white"
+              }`}
+            >
+              {isCompressing ? (
+                <div className="flex flex-col items-center justify-center py-2 space-y-2">
+                  <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                  <p className="text-xs font-bold text-emerald-800 animate-pulse">
+                    {compressionProgress || "फ़ोटो प्रोसेस हो रही है..."}
+                  </p>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    (स्वचालित 60KB वेबपी कंप्रेशन और 0% ब्रोकरेज वाटरमार्क स्टैंप)
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-2 space-y-1.5">
+                  <div className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-xs">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <div className="font-bold text-slate-800 text-sm">
+                    फ़ोटो चुनें (गैलरी से लें या कैमरा से खींचें)
+                  </div>
+                  <p className="text-slate-500 text-[11px] max-w-sm">
+                    सीधे अपने फोन या कंप्यूटर से असली फ़ोटो लगाएं। 0% ब्रोकरेज वाटरमार्क लगकर क्लाउड पर सुरक्षित सेव होगी।
+                  </p>
+                  <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-0.5 rounded-full mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>0% ब्रोकरेज एंटी-दलाल वाटरमार्क सुरक्षित</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Photo Previews */}
+            {imageUrls.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-600 block">
+                  अपलोड की गई फ़ोटो (पहली फ़ोटो कवर फ़ोटो बनेगी):
+                </span>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pt-1">
+                  {imageUrls.map((url, i) => (
+                    <div key={i} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group shadow-xs">
+                      <img src={url} alt={`Property upload ${i + 1}`} className="w-full h-full object-cover" />
+                      
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 bg-emerald-800/90 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow">
+                          ⭐ कवर फ़ोटो
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveImage(i);
+                        }}
+                        title="Delete photo"
+                        className="absolute top-1 right-1 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center text-xs shadow hover:bg-rose-700 active:scale-90 transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Toggleable URL input fallback */}
+            <div className="pt-1">
+              {!showUrlInput ? (
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(true)}
+                  className="text-[11px] font-bold text-slate-500 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  <span>या इमेज का वेब URL लिंक जोड़ें</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="url"
+                    placeholder="फोटो का इमेज URL डालें (उदा. https://...)"
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddImage}
+                    className="py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shrink-0"
+                  >
+                    + जोड़ें
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(false)}
+                    className="py-2 px-2 text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    रद्द
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 border-t border-slate-200/80">
               <label className="font-bold text-slate-800 block mb-1 flex items-center gap-1">
                 <Video className="w-3.5 h-3.5 text-red-500" />
-                <span>360° या वीडियो टूर लिंक (MP4 / Web Video)</span>
+                <span>360° या वीडियो टूर लिंक (MP4 / Web Video - ऐच्छिक)</span>
               </label>
               <input
                 type="url"
