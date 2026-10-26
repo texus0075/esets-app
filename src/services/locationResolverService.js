@@ -9,6 +9,36 @@
  */
 
 import { findStateForDistrict, LOCATIONS } from "../data/locations.js";
+import { geohashForLocation, geohashQueryBounds, distanceBetween } from "geofire-common";
+
+/**
+ * REPO #3 / Spatial Geohash Engine (geofire-common):
+ * Generates official 9-character precision Geohashes for Firestore spatial indexing.
+ */
+export function calculateGeohash(lat, lng) {
+  if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng)) {
+    return null;
+  }
+  return geohashForLocation([lat, lng]);
+}
+
+/**
+ * Query Bounding Boxes for Hyper-Local Radius Filtering
+ * Returns an array of geohash bounds [start, end] for querying Firestore within radiusInKm.
+ */
+export function getRadiusGeohashBounds(centerLat, centerLng, radiusInKm = 10) {
+  if (typeof centerLat !== "number" || typeof centerLng !== "number") return [];
+  const radiusInMeters = radiusInKm * 1000;
+  return geohashQueryBounds([centerLat, centerLng], radiusInMeters);
+}
+
+/**
+ * High-Precision Haversine Distance in Kilometers
+ */
+export function getExactDistanceKm(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  return distanceBetween([lat1, lon1], [lat2, lon2]);
+}
 
 /**
  * Scan 6-digit Indian Postal Pincode

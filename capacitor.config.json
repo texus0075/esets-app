@@ -1,0 +1,6 @@
+{
+  "appId": "in.esets.app",
+  "appName": "Esets",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

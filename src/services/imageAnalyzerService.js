@@ -1,18 +1,40 @@
+import imageCompression from "browser-image-compression";
+
 /**
  * Image Processing, Compression, AI Room Detection & Anti-Theft Watermarking Service
  * 
- * Category 2 / Media Engine:
- * 1. Client-side canvas compression: Resizes 10MB camera files to lightweight WebP/JPEG data URLs.
+ * Category 2 / Media Engine (Repo #2: browser-image-compression):
+ * 1. Multithreaded WebWorker compression: Resizes 10MB-20MB camera files to lightweight WebP/JPEG data URLs.
  * 2. Canvas Anti-Theft Watermarking: Embeds non-erasable "Esets 0% Brokerage" watermark to protect photos from brokers.
  * 3. Multi-Key Gemini Vision AI with internal if-else failover to detect room types.
  */
 
-export function compressImageFile(file, maxWidth = 1280, maxHeight = 960, quality = 0.82) {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith("image/")) {
-      return reject(new Error("Selected file is not an image."));
-    }
+export async function compressImageFile(file, maxWidth = 1280, maxHeight = 960, quality = 0.82) {
+  if (!file || !file.type.startsWith("image/")) {
+    throw new Error("Selected file is not an image.");
+  }
 
+  // REPO #2 Integration: High-Performance WebWorker Compression with EXIF Orientation Fix
+  try {
+    const options = {
+      maxSizeMB: 0.4,
+      maxWidthOrHeight: Math.max(maxWidth, maxHeight),
+      useWebWorker: true,
+      initialQuality: quality
+    };
+    const compressedBlob = await imageCompression(file, options);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => resolve(event.target.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(compressedBlob);
+    });
+  } catch (workerErr) {
+    console.warn("WebWorker compression notice, falling back to Canvas engine:", workerErr);
+  }
+
+  // Fallback Canvas Resizer
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -20,7 +42,6 @@ export function compressImageFile(file, maxWidth = 1280, maxHeight = 960, qualit
         let width = img.width;
         let height = img.height;
 
-        // Calculate aspect-ratio preserving dimensions
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
@@ -40,7 +61,6 @@ export function compressImageFile(file, maxWidth = 1280, maxHeight = 960, qualit
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert to lightweight JPEG data URL
         const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
         resolve(compressedDataUrl);
       };
