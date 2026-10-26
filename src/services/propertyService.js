@@ -40,30 +40,53 @@ export const saveCachedProperties = (props) => {
   }
 };
 
+const DELETED_PROPERTIES_KEY = "esets_deleted_property_ids";
+
+export const getDeletedPropertyIds = () => {
+  try {
+    const raw = localStorage.getItem(DELETED_PROPERTIES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const markPropertyDeletedLocally = (id) => {
+  try {
+    const current = getDeletedPropertyIds();
+    if (!current.includes(id)) {
+      localStorage.setItem(DELETED_PROPERTIES_KEY, JSON.stringify([...current, id]));
+    }
+  } catch (e) {
+    console.warn("Could not save deleted property key:", e);
+  }
+};
+
 // Real-time Firestore Listener (REPO #1: Persistence & Live Sync)
 export const subscribeProperties = (onUpdate, onError) => {
   try {
     const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      const deletedIds = new Set(getDeletedPropertyIds());
       if (!snapshot.empty) {
-        const liveItems = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const liveItems = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(p => !deletedIds.has(p.id));
         // Merge with sample catalog so user has a rich marketplace alongside live listings
         const firestoreIds = new Set(liveItems.map(i => i.id));
-        const sampleCatalog = INITIAL_PROPERTIES.filter(p => !firestoreIds.has(p.id));
+        const sampleCatalog = INITIAL_PROPERTIES.filter(p => !firestoreIds.has(p.id) && !deletedIds.has(p.id));
         const combined = [...liveItems, ...sampleCatalog];
         saveCachedProperties(combined);
         onUpdate(combined);
       } else {
-        // Fallback to local cache / seed data
-        const cached = getCachedProperties();
+        // Fallback to local cache / seed data without deleted ones
+        const cached = getCachedProperties().filter(p => !deletedIds.has(p.id));
         onUpdate(cached);
       }
     }, (err) => {
       console.warn("Firestore snapshot listener notice, using offline cache:", err.message);
-      onUpdate(getCachedProperties());
+      const deletedIds = new Set(getDeletedPropertyIds());
+      onUpdate(getCachedProperties().filter(p => !deletedIds.has(p.id)));
       if (onError) onError(err);
     });
 
@@ -163,6 +186,7 @@ export const toggleSoldStatus = async (propertyId, currentStatus) => {
 
 // Delete property listing
 export const deleteProperty = async (propertyId) => {
+  markPropertyDeletedLocally(propertyId);
   try {
     if (!propertyId.startsWith("local-") && !propertyId.startsWith("prop-")) {
       const docRef = doc(db, COLLECTION_NAME, propertyId);
