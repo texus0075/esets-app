@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import HomeLoanEMICalculator from "../HomeLoanEMICalculator";
+import HomeLoanEligibilityCalculator from "../HomeLoanEligibilityCalculator";
 import { convertLandArea, REGIONAL_AREA_FACTORS } from "../../services/indianRealEstateCalculatorService";
 
 export default function ExploreFinancialTools() {
@@ -29,30 +30,42 @@ export default function ExploreFinancialTools() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container-low border border-surface-container text-xs">
+        <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-surface-container-low border border-surface-container text-xs">
           <button
             type="button"
             onClick={() => setActiveTool("emi")}
-            className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 text-[11px] ${
               activeTool === "emi"
                 ? "bg-primary text-surface shadow-xs"
                 : "text-on-surface-variant hover:text-primary"
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">calculate</span>
-            <span>Home Loan EMI</span>
+            <span className="material-symbols-outlined text-[15px]">calculate</span>
+            <span>Loan EMI</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTool("land")}
-            className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 text-[11px] ${
               activeTool === "land"
                 ? "bg-primary text-surface shadow-xs"
                 : "text-on-surface-variant hover:text-primary"
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">square_foot</span>
-            <span>Gaj / Bigha Converter</span>
+            <span className="material-symbols-outlined text-[15px]">square_foot</span>
+            <span>Gaj / Bigha</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTool("eligibility")}
+            className={`py-2 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 text-[11px] ${
+              activeTool === "eligibility"
+                ? "bg-primary text-surface shadow-xs"
+                : "text-on-surface-variant hover:text-primary"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[15px]">account_balance</span>
+            <span>Eligibility</span>
           </button>
         </div>
 
@@ -132,6 +145,13 @@ export default function ExploreFinancialTools() {
                 {convertedResult.toLocaleString("en-IN")} {toUnit.replace("_pucca", " (पक्का)").replace("_kaccha", " (कच्चा)").toUpperCase()}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Tool 3: Home Loan Eligibility Calculator */}
+        {activeTool === "eligibility" && (
+          <div className="animate-in fade-in duration-150">
+            <HomeLoanEligibilityCalculator />
           </div>
         )}
       </div>

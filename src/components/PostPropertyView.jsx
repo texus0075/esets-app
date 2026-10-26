@@ -37,6 +37,9 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
   const [bhk, setBhk] = useState("4");
   const [bathrooms, setBathrooms] = useState("4");
   const [furnishing, setFurnishing] = useState("Semi-Furnished");
+  const [facing, setFacing] = useState("East Facing (Vastu)");
+  const [ownership, setOwnership] = useState("Freehold Registry Deed");
+  const [propertyStatus, setPropertyStatus] = useState("Ready to Move");
 
   // STEP 2 STATE: HYPER-LOCAL PIN & ADDRESS
   const [stateName, setStateName] = useState("Rajasthan");
@@ -372,6 +375,9 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
       verifiedOwner: true,
       has360: true,
       furnishing,
+      facing,
+      ownership,
+      status: propertyStatus,
       floorLevel: "Independent Villa / Floor",
       coords: geoCoords,
       landmarks: [

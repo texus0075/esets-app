@@ -166,3 +166,48 @@ export function calculateBrokerageSavings(priceInRupees) {
   }
   return `Saved ₹${Math.round(saved).toLocaleString("en-IN")} Brokerage`;
 }
+
+/**
+ * 5. Home Loan Eligibility Calculator (Standard FOIR 50% Method)
+ * @param {number} monthlySalary - Net in-hand monthly salary in ₹
+ * @param {number} existingEmis - Other active monthly EMIs in ₹
+ * @param {number} annualRate - Interest rate (default 8.5%)
+ * @param {number} tenureYears - Tenure in years (default 20)
+ */
+export function calculateHomeLoanEligibility(monthlySalary, existingEmis = 0, annualRate = 8.5, tenureYears = 20) {
+  const salary = Number(monthlySalary) || 0;
+  const emis = Number(existingEmis) || 0;
+  
+  // Standard Indian Banking FOIR (Fixed Obligation to Income Ratio) = 50%
+  const maxAllowableEmi = Math.max(0, (salary * 0.5) - emis);
+  
+  if (maxAllowableEmi <= 0) {
+    return {
+      maxAllowableEmi: 0,
+      eligibleLoanAmount: 0,
+      eligibleLoanFormatted: "₹0",
+      maxEmiFormatted: "₹0"
+    };
+  }
+
+  const r = (Number(annualRate) || 8.5) / 12 / 100;
+  const n = (Number(tenureYears) || 20) * 12;
+  
+  // Reverse EMI: P = [EMI * ((1+r)^n - 1)] / [r * (1+r)^n]
+  const emiFactor = Math.pow(1 + r, n);
+  const eligibleLoan = Math.round((maxAllowableEmi * (emiFactor - 1)) / (r * emiFactor));
+
+  let eligibleLoanFormatted = `₹${eligibleLoan.toLocaleString("en-IN")}`;
+  if (eligibleLoan >= 10000000) {
+    eligibleLoanFormatted = `₹${(eligibleLoan / 10000000).toFixed(2)} Crore`;
+  } else if (eligibleLoan >= 100000) {
+    eligibleLoanFormatted = `₹${(eligibleLoan / 100000).toFixed(2)} Lakh`;
+  }
+
+  return {
+    maxAllowableEmi,
+    eligibleLoanAmount: eligibleLoan,
+    eligibleLoanFormatted,
+    maxEmiFormatted: `₹${Math.round(maxAllowableEmi).toLocaleString("en-IN")}`
+  };
+}

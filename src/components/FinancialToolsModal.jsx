@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import HomeLoanEMICalculator from "./HomeLoanEMICalculator";
-import { convertLandArea, REGIONAL_AREA_FACTORS } from "../services/indianRealEstateCalculatorService";
+import HomeLoanEligibilityCalculator from "./HomeLoanEligibilityCalculator";
+import { convertLandArea } from "../services/indianRealEstateCalculatorService";
 
 export default function FinancialToolsModal({ 
   isOpen, 
@@ -47,31 +48,45 @@ export default function FinancialToolsModal({
         </div>
 
         {/* Tab Switcher */}
-        <div className="p-3 bg-surface-container-low border-b border-surface-container">
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container-lowest border border-surface-container text-xs">
+        <div className="p-2.5 bg-surface-container-low border-b border-surface-container">
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-surface-container-lowest border border-surface-container text-xs">
             <button
               type="button"
               onClick={() => setActiveTool("emi")}
-              className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 text-[11px] ${
                 activeTool === "emi"
                   ? "bg-primary text-surface shadow-xs"
                   : "text-on-surface-variant hover:text-primary"
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">calculate</span>
-              <span>Home Loan EMI</span>
+              <span className="material-symbols-outlined text-[15px]">calculate</span>
+              <span>Loan EMI</span>
             </button>
+
             <button
               type="button"
               onClick={() => setActiveTool("land")}
-              className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 text-[11px] ${
                 activeTool === "land"
                   ? "bg-primary text-surface shadow-xs"
                   : "text-on-surface-variant hover:text-primary"
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">square_foot</span>
-              <span>Gaj / Bigha Converter</span>
+              <span className="material-symbols-outlined text-[15px]">square_foot</span>
+              <span>Gaj / Bigha</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTool("eligibility")}
+              className={`py-2 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1 text-[11px] ${
+                activeTool === "eligibility"
+                  ? "bg-primary text-surface shadow-xs"
+                  : "text-on-surface-variant hover:text-primary"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px]">account_balance</span>
+              <span>Eligibility</span>
             </button>
           </div>
         </div>
@@ -174,6 +189,12 @@ export default function FinancialToolsModal({
                   <strong>1 Acre:</strong> 4,840 Gaj
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTool === "eligibility" && (
+            <div className="animate-in fade-in duration-150">
+              <HomeLoanEligibilityCalculator />
             </div>
           )}
         </div>

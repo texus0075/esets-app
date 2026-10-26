@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StampLogo from "./StampLogo";
 import { resolvePropertyLandmarks } from "../services/landmarkRadarService";
 import HomeLoanEMICalculator from "./HomeLoanEMICalculator";
+import { submitPropertyInquiry } from "../services/inquiryService";
 
 export default function PropertyFolioModal({ 
   property, 
@@ -20,6 +21,51 @@ export default function PropertyFolioModal({
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartOffset, setDragStartOffset] = useState(50);
   const landmarks = resolvePropertyLandmarks(property);
+
+  // Direct Buyer Visit & Inquiry State
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
+  const [visitDate, setVisitDate] = useState("");
+  const [visitTime, setVisitTime] = useState("Morning (9 AM - 12 PM)");
+  const [inquirySent, setInquirySent] = useState(false);
+  const [isSendingInquiry, setIsSendingInquiry] = useState(false);
+
+  const handleSendInquiry = async (e) => {
+    e.preventDefault();
+    if (!buyerName.trim() || !buyerPhone.trim() || !visitDate) {
+      alert("कृपया नाम, फोन नंबर और तारीख दर्ज करें।");
+      return;
+    }
+    setIsSendingInquiry(true);
+    await submitPropertyInquiry({
+      propertyId: property.id,
+      propertyTitle: property.title,
+      propertyPrice: property.priceUnit,
+      sellerId: property.userId || property.sellerPhone,
+      sellerName: property.sellerName,
+      sellerPhone: property.sellerPhone,
+      buyerName: buyerName.trim(),
+      buyerPhone: buyerPhone.trim(),
+      visitDate,
+      visitTime
+    });
+    setIsSendingInquiry(false);
+    setInquirySent(true);
+  };
+
+  const handleShareListing = () => {
+    const shareData = {
+      title: property.title,
+      text: `Direct C2C Real Estate: ${property.title} in ${property.locality} (${property.priceUnit}) on Esets - 0% Brokerage!`,
+      url: window.location.href
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+      alert("📋 प्रॉपर्टी लिंक कॉपी हो गया है! आप इसे व्हाट्सएप पर शेयर कर सकते हैं।");
+    }
+  };
 
   // Fallback images if property has fewer images
   const photos = property.images && property.images.length > 0 ? property.images : [
@@ -53,6 +99,13 @@ export default function PropertyFolioModal({
             </h1>
           </div>
           <div className="flex items-center gap-space-xs">
+            <button
+              onClick={handleShareListing}
+              title="Share Property"
+              className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-secondary transition active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[17px]">share</span>
+            </button>
             <div className="inline-flex items-center px-2 py-0.5 rounded bg-primary-container text-secondary-container font-code-spec text-code-spec shadow-xs">
               <span className="font-semibold text-[10px] uppercase tracking-wide">0% Brok.</span>
             </div>
@@ -494,6 +547,133 @@ export default function PropertyFolioModal({
               {/* Owner's Note */}
               <div className="p-3 rounded-xl bg-surface-container-low text-primary font-body-sm text-body-sm leading-relaxed italic border border-surface-container">
                 “{property.description}”
+              </div>
+
+              {/* 12 Essential Amenities Checklist */}
+              <div className="p-3.5 rounded-xl bg-surface-container-low border border-surface-container flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-label-lg text-primary font-bold flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">apartment</span>
+                    Essential Society Amenities
+                  </span>
+                  <span className="font-code-spec text-[10px] text-secondary font-bold">100% Verified</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1 text-xs">
+                  {[
+                    { label: "Gated Society & Guard", icon: "security" },
+                    { label: "Covered Car Parking", icon: "directions_car" },
+                    { label: "100% Power Backup", icon: "bolt" },
+                    { label: "24/7 Water Supply", icon: "water_drop" },
+                    { label: "High-Speed Lift", icon: "elevator" },
+                    { label: "Park / Green Facing", icon: "park" },
+                    { label: "Vastu Compliant", icon: "explore" },
+                    { label: "CCTV Surveillance", icon: "videocam" },
+                    { label: "Gym & Club Facility", icon: "fitness_center" },
+                    { label: "Piped Gas Pipeline", icon: "local_fire_department" },
+                    { label: "Wide 40ft Link Road", icon: "add_road" },
+                    { label: "Immediate Registry Deed", icon: "description" }
+                  ].map((amenity, i) => (
+                    <div key={i} className="p-2 rounded-lg bg-surface-container-lowest flex items-center gap-1.5 border border-surface-container text-primary font-medium text-[11px]">
+                      <span className="material-symbols-outlined text-[15px] text-secondary">{amenity.icon}</span>
+                      <span className="truncate">{amenity.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Direct Buyer Visit Scheduler */}
+              {!isSold && (
+                <div className="p-3.5 rounded-xl bg-surface-container-low border border-surface-container flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-secondary text-[18px]">calendar_month</span>
+                      <span className="font-label-lg text-primary font-bold">Schedule Free Site Visit</span>
+                    </div>
+                    <span className="font-code-spec text-[10px] text-secondary bg-surface-container-lowest px-2 py-0.5 rounded font-bold">
+                      0% Brokerage Visit
+                    </span>
+                  </div>
+                  <p className="font-body-sm text-[11px] text-on-surface-variant">
+                    Direct appointment with owner. No agent or middleman involved.
+                  </p>
+                  
+                  {inquirySent ? (
+                    <div className="p-3 rounded-xl bg-tertiary-fixed/40 border border-tertiary-fixed text-primary text-xs font-semibold flex items-center gap-2">
+                      <span className="material-symbols-outlined text-tertiary-container text-[20px]">check_circle</span>
+                      <div>
+                        <p className="font-bold">विजिट रिक्वेस्ट ओनर को भेज दी गई है!</p>
+                        <p className="text-[10px] text-on-surface-variant">ओनर आपसे सीधे इस नंबर पर संपर्क करेंगे।</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSendInquiry} className="flex flex-col gap-2 pt-1 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="आपका नाम (Your Name)" 
+                          value={buyerName}
+                          onChange={(e) => setBuyerName(e.target.value)}
+                          required
+                          className="p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container text-primary font-medium focus:outline-none"
+                        />
+                        <input 
+                          type="tel" 
+                          placeholder="मोबाइल नंबर (Phone Number)" 
+                          value={buyerPhone}
+                          onChange={(e) => setBuyerPhone(e.target.value)}
+                          required
+                          className="p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container text-primary font-medium focus:outline-none"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input 
+                          type="date" 
+                          value={visitDate}
+                          onChange={(e) => setVisitDate(e.target.value)}
+                          required
+                          className="p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container text-primary font-medium focus:outline-none"
+                        />
+                        <select
+                          value={visitTime}
+                          onChange={(e) => setVisitTime(e.target.value)}
+                          className="p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container text-primary font-medium focus:outline-none"
+                        >
+                          <option value="Morning (9 AM - 12 PM)">सुबह (9 AM - 12 PM)</option>
+                          <option value="Afternoon (12 PM - 4 PM)">दोपहर (12 PM - 4 PM)</option>
+                          <option value="Evening (4 PM - 7 PM)">शाम (4 PM - 7 PM)</option>
+                        </select>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSendingInquiry}
+                        className="w-full py-2.5 px-3 rounded-xl bg-primary-container text-surface font-label-md font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 active:scale-98 transition"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">send</span>
+                        <span>{isSendingInquiry ? "भेज रहे हैं..." : "Request Free Site Visit"}</span>
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* Share & Report Row */}
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={handleShareListing}
+                  className="flex-1 py-2 px-3 rounded-xl bg-surface-container-low hover:bg-surface-container border border-surface-container text-primary font-label-md text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-secondary">share</span>
+                  <span>Share Listing</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert("धन्यवाद! हमारी ट्रस्ट एंड सेफ्टी टीम 24 घंटे में इस लिस्टिंग की समीक्षा करेगी।")}
+                  className="py-2 px-3 rounded-xl bg-surface-container-low hover:bg-surface-container border border-surface-container text-on-surface-variant font-label-md text-xs font-medium flex items-center gap-1 transition"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-error">flag</span>
+                  <span>Report</span>
+                </button>
               </div>
 
               {/* Signature 'SOLD IT' Demo Controller Toggle */}

@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { subscribeToInquiries } from "../../services/inquiryService";
 
 export default function MyListingsView({
   myProperties,
@@ -11,6 +13,16 @@ export default function MyListingsView({
   const activeCount = myProperties.filter(p => !p.isSold && !isGlobalCallShieldActive).length;
   const soldCount = myProperties.filter(p => p.isSold || isGlobalCallShieldActive).length;
   const totalViews = myProperties.reduce((sum, p) => sum + (p.views || 0), 0);
+  const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState("portfolio"); // 'portfolio' | 'inquiries'
+  const [inquiries, setInquiries] = useState([]);
+
+  useEffect(() => {
+    const unsub = subscribeToInquiries(currentUser?.uid, (data) => {
+      setInquiries(data || []);
+    });
+    return () => unsub();
+  }, [currentUser]);
 
   return (
     <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto px-margin-mobile">
@@ -74,7 +86,114 @@ export default function MyListingsView({
           </div>
         </div>
 
-        {/* Listings Section */}
+        {/* Sub-Tab Navigation: Portfolio vs Inquiries */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container-low border border-surface-container text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setActiveTab("portfolio")}
+            className={`py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activeTab === "portfolio"
+                ? "bg-primary text-surface shadow-xs"
+                : "text-on-surface-variant hover:text-primary"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">real_estate_agent</span>
+            <span>Active Listings ({myProperties.length})</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setActiveTab("inquiries")}
+            className={`py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activeTab === "inquiries"
+                ? "bg-primary text-surface shadow-xs"
+                : "text-on-surface-variant hover:text-primary"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">calendar_month</span>
+            <span>Buyer Inquiries ({inquiries.length})</span>
+          </button>
+        </div>
+
+        {/* Section 1: Inquiries Leads Feed */}
+        {activeTab === "inquiries" && (
+          <div className="space-y-3 pt-1 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <span className="font-code-spec text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">
+                Direct Buyer Site-Visit Requests ({inquiries.length})
+              </span>
+            </div>
+
+            {inquiries.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-surface-container-lowest border border-surface-container text-center flex flex-col items-center gap-2">
+                <span className="material-symbols-outlined text-4xl text-secondary">mark_chat_unread</span>
+                <h3 className="font-headline-sm text-sm font-bold text-primary">No Inquiries Yet</h3>
+                <p className="font-body-sm text-xs text-on-surface-variant max-w-xs">
+                  Whenever a buyer schedules a site visit on any of your listings, their contact details and visit time will appear here.
+                </p>
+              </div>
+            ) : (
+              inquiries.map((inq, idx) => (
+                <div 
+                  key={inq.id || idx}
+                  className="p-3.5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs flex flex-col gap-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-fixed flex items-center justify-center font-bold text-xs">
+                        {inq.buyerName?.charAt(0)?.toUpperCase() || "B"}
+                      </div>
+                      <div>
+                        <span className="font-headline-sm text-sm font-bold text-primary block leading-tight">
+                          {inq.buyerName || "Prospective Buyer"}
+                        </span>
+                        <span className="font-code-spec text-[10px] text-on-surface-variant">
+                          Requested for: {inq.propertyTitle || "Your Property"}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-code-spec text-[10px] font-bold">
+                      {inq.status || "NEW LEAD"}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-surface-container flex items-center justify-between text-xs font-code-spec">
+                    <div className="flex items-center gap-1.5 text-primary">
+                      <span className="material-symbols-outlined text-[15px] text-secondary">event</span>
+                      <span>{inq.visitDate || "Anytime"} • {inq.visitTime || "Morning"}</span>
+                    </div>
+                    <span className="text-[10.5px] text-on-surface-variant font-bold">
+                      📞 {inq.buyerPhone || "Phone masked"}
+                    </span>
+                  </div>
+
+                  {/* Twin Contact Action Buttons for Seller */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <a
+                      href={`tel:${inq.buyerPhone?.replace(/\s+/g, '')}`}
+                      className="py-2 px-3 rounded-xl bg-secondary text-surface font-label-md text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-on-secondary-fixed transition"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">call</span>
+                      <span>Call Buyer</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/${inq.buyerPhone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${inq.buyerName}, thank you for scheduling a visit for my property on Esets. Looking forward to meeting you on ${inq.visitDate}!`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3 rounded-xl bg-primary-container text-tertiary-fixed font-label-md text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 transition"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">chat</span>
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Section 2: Active Portfolio Listings */}
+        {activeTab === "portfolio" && (
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between">
             <span className="font-code-spec text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">
@@ -194,6 +313,7 @@ export default function MyListingsView({
             </div>
           )}
         </div>
+        )}
 
       </div>
     </main>
