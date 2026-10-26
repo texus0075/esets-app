@@ -4,6 +4,8 @@ import ExploreTrustCards from "../explore/ExploreTrustCards";
 import ExploreCategoryBar from "../explore/ExploreCategoryBar";
 import ExploreFilterBar from "../explore/ExploreFilterBar";
 import ExplorePropertyFeed from "../explore/ExplorePropertyFeed";
+import ExploreFinancialTools from "../explore/ExploreFinancialTools";
+import ExplorePriceTrends from "../explore/ExplorePriceTrends";
 import ExploreRadarCard from "../explore/ExploreRadarCard";
 
 export default function ExploreView({
@@ -83,7 +85,13 @@ export default function ExploreView({
           onResetFilters={onResetFilters}
         />
 
-        {/* 6. Topographical GPS Distance Radar */}
+        {/* 6. Regional Land Unit Converter & Interactive Home Loan EMI Tools */}
+        <ExploreFinancialTools />
+
+        {/* 7. Real Estate Capital Price Trends & Rental Yields */}
+        <ExplorePriceTrends />
+
+        {/* 8. Topographical GPS Distance Radar */}
         <ExploreRadarCard gpsData={gpsData} />
 
       </div>
