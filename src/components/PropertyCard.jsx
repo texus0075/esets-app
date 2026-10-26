@@ -1,4 +1,5 @@
 import React from "react";
+import { calculateIndianEMI } from "../services/indianRealEstateCalculatorService";
 
 export default function PropertyCard({ 
   property, 
@@ -7,6 +8,16 @@ export default function PropertyCard({
 }) {
   const isSold = property.isSold || isGlobalCallShieldActive;
   const mainImage = property.images && property.images.length > 0 ? property.images[0] : "";
+
+  // RightHome Financial Intelligence: 80% Loan EMI & 2% Brokerage Savings
+  const priceNum = Number(property.price) || 0;
+  const loanPrincipal = priceNum * 0.8;
+  const emiData = calculateIndianEMI(loanPrincipal, 8.5, 20);
+  const brokerageSavedNum = priceNum * 0.02;
+  const brokerageSavedFormatted = brokerageSavedNum >= 100000 
+    ? `₹${(brokerageSavedNum / 100000).toFixed(1)}L` 
+    : `₹${Math.round(brokerageSavedNum).toLocaleString("en-IN")}`;
+  const psfValue = property.area && priceNum > 0 ? Math.round(priceNum / property.area) : null;
 
   return (
     <article 
@@ -82,11 +93,16 @@ export default function PropertyCard({
               </span>
             </div>
 
-            {/* Price Overlaid Tag */}
-            <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-surface-container-lowest/95 backdrop-blur-md shadow-sm">
+            {/* Price & Rate Overlaid Tag */}
+            <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-surface-container-lowest/95 backdrop-blur-md shadow-sm flex items-center gap-2">
               <div className="font-headline-sm text-headline-sm text-primary font-bold">
                 {property.priceUnit}
               </div>
+              {psfValue && (
+                <span className="font-code-spec text-[10px] text-on-surface-variant border-l border-surface-container pl-1.5 font-medium">
+                  ₹{psfValue.toLocaleString("en-IN")}/sqft
+                </span>
+              )}
             </div>
           </>
         )}
@@ -127,6 +143,37 @@ export default function PropertyCard({
             <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Tenure</span>
             <span className="font-code-spec text-code-spec text-on-surface font-semibold truncate">{property.ownership?.split(' ')[0] || "Freehold"}</span>
           </div>
+        </div>
+
+        {/* RightHome PropTech Financial & Vastu Intelligence Strip */}
+        <div className="flex items-center justify-between gap-1.5 py-0.5 px-0.5 text-[11px]">
+          {/* Monthly EMI Indicator */}
+          {emiData.monthlyEMI > 0 && (
+            <div className="flex items-center gap-1 font-code-spec text-primary font-bold">
+              <span className="material-symbols-outlined text-[14px] text-secondary">calculate</span>
+              <span>EMI from ₹{emiData.monthlyEMI.toLocaleString("en-IN")}/mo*</span>
+            </div>
+          )}
+
+          {/* 2% Brokerage Savings Tag */}
+          {brokerageSavedNum > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-code-spec text-[10px] font-bold">
+              <span className="material-symbols-outlined text-[12px]">savings</span>
+              Save {brokerageSavedFormatted} Brok.
+            </span>
+          )}
+        </div>
+
+        {/* Vastu & Ready Status Tags */}
+        <div className="flex items-center gap-1.5 flex-wrap text-[10.5px] font-code-spec text-on-surface-variant">
+          <span className="px-2 py-0.5 rounded-md bg-surface-container-low flex items-center gap-1 font-semibold">
+            <span className="material-symbols-outlined text-[12px] text-secondary">explore</span>
+            {property.facing || "East Facing (Vastu)"}
+          </span>
+          <span className="px-2 py-0.5 rounded-md bg-surface-container-low flex items-center gap-1 font-semibold">
+            <span className="material-symbols-outlined text-[12px] text-tertiary-fixed-dim">verified</span>
+            {property.status || "Ready to Move"}
+          </span>
         </div>
 
         {/* Bottom Interactive Area */}

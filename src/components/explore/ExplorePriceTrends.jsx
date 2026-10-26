@@ -10,7 +10,7 @@ const PRICE_TRENDS = [
 
 export default function ExplorePriceTrends() {
   return (
-    <section className="px-margin-mobile mt-4">
+    <section id="price-trends-section" className="px-margin-mobile mt-4 scroll-mt-20">
       <div className="p-3.5 rounded-2xl bg-surface-container border border-surface-container flex flex-col gap-2.5 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">

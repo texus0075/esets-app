@@ -26,6 +26,9 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
   const [bhk, setBhk] = useState("2");
   const [bathrooms, setBathrooms] = useState("2");
   const [furnishing, setFurnishing] = useState("Semi-Furnished");
+  const [facing, setFacing] = useState("East Facing (Vastu)");
+  const [ownership, setOwnership] = useState("Freehold Registry Deed");
+  const [propertyStatus, setPropertyStatus] = useState("Ready to Move");
 
   const [selectedState, setSelectedState] = useState("Delhi");
   const [selectedDistrict, setSelectedDistrict] = useState("South Delhi");
@@ -91,6 +94,9 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
       bhk: category === "Plot" || category === "Commercial" ? 0 : Number(bhk),
       bathrooms: Number(bathrooms) || 1,
       furnishing,
+      facing,
+      ownership,
+      status: propertyStatus,
       state: selectedState,
       district: selectedDistrict,
       locality: locality.trim(),
@@ -242,6 +248,51 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
                   ≈ {(Number(area) / 9).toFixed(1)} गज (Gaj)
                 </p>
               )}
+            </div>
+          </div>
+
+          {/* RightHome Vastu, Title & Readiness Attributes */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="font-bold text-slate-800 block mb-1">दिशा (Facing / Vastu)</label>
+              <select
+                value={facing}
+                onChange={(e) => setFacing(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+              >
+                <option value="East Facing (Vastu)">ईस्ट फेसिंग (वास्तु)</option>
+                <option value="North-East (ईशान)">नॉर्थ-ईस्ट (ईशान कोण)</option>
+                <option value="North Facing">नॉर्थ फेसिंग</option>
+                <option value="West Facing">वेस्ट फेसिंग</option>
+                <option value="South Facing">साउथ फेसिंग</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800 block mb-1">दस्तावेज (Ownership Title)</label>
+              <select
+                value={ownership}
+                onChange={(e) => setOwnership(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+              >
+                <option value="Freehold Registry Deed">फ्रीहोल्ड रजिस्ट्री (Freehold)</option>
+                <option value="Society Patta / Lease">सोसायटी पट्टा / लीज</option>
+                <option value="Power of Attorney (POA)">पॉवर ऑफ अटॉर्नी (POA)</option>
+                <option value="Authority Allotment">प्राधिकरण आवंटन (DDA/JDA)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800 block mb-1">स्टेटस (Status)</label>
+              <select
+                value={propertyStatus}
+                onChange={(e) => setPropertyStatus(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+              >
+                <option value="Ready to Move">रेडी टू मूव (Ready to Move)</option>
+                <option value="Under Construction">निर्माणाधीन (Under Construction)</option>
+                <option value="Immediate Registry">तत्काल रजिस्ट्री उपलब्ध</option>
+              </select>
             </div>
           </div>
 

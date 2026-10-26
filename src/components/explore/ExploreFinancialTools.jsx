@@ -13,7 +13,7 @@ export default function ExploreFinancialTools() {
   const convertedResult = convertLandArea(areaVal, fromUnit, toUnit);
 
   return (
-    <section className="px-margin-mobile mt-4">
+    <section id="financial-tools-section" className="px-margin-mobile mt-4 scroll-mt-20">
       <div className="p-3.5 rounded-2xl bg-surface-container border border-surface-container flex flex-col gap-3 shadow-xs">
         {/* Header */}
         <div className="flex items-center justify-between">

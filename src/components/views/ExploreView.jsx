@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import ExploreHero from "../explore/ExploreHero";
 import ExploreTrustCards from "../explore/ExploreTrustCards";
 import ExploreCategoryBar from "../explore/ExploreCategoryBar";
@@ -7,6 +7,7 @@ import ExplorePropertyFeed from "../explore/ExplorePropertyFeed";
 import ExploreFinancialTools from "../explore/ExploreFinancialTools";
 import ExplorePriceTrends from "../explore/ExplorePriceTrends";
 import ExploreRadarCard from "../explore/ExploreRadarCard";
+import FinancialToolsModal from "../FinancialToolsModal";
 
 export default function ExploreView({
   // Filter States
@@ -21,6 +22,8 @@ export default function ExploreView({
   onDealIntentChange,
   bhkFilter,
   onBhkFilterChange,
+  budgetFilter,
+  onBudgetFilterChange,
   onResetFilters,
 
   // Hardware GPS & Location Management
@@ -37,14 +40,23 @@ export default function ExploreView({
   onSelectProperty,
   isGlobalCallShieldActive
 }) {
+  const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
+  const [toolsModalTab, setToolsModalTab] = useState("emi");
+
+  const handleOpenToolsModal = (tab = "emi") => {
+    setToolsModalTab(tab);
+    setIsToolsModalOpen(true);
+  };
+
   return (
     <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto">
       <div className="flex flex-col w-full pb-8">
         
-        {/* 1. Hero & CTAs Section (Clean, compact, 0 install boxes) */}
+        {/* 1. Hero & CTAs Section (With Quick PropTech Tools Hub) */}
         <ExploreHero
           onPostProperty={onPostProperty}
           onOpenChecklistModal={onOpenChecklistModal}
+          onOpenToolsModal={handleOpenToolsModal}
         />
 
         {/* 2. Horizontal Micro-Trust Cards */}
@@ -69,6 +81,8 @@ export default function ExploreView({
           onDealIntentChange={onDealIntentChange}
           bhkFilter={bhkFilter}
           onBhkFilterChange={onBhkFilterChange}
+          budgetFilter={budgetFilter}
+          onBudgetFilterChange={onBudgetFilterChange}
           gpsData={gpsData}
           isLocatingGps={isLocatingGps}
           onDetectGPS={onDetectGPS}
@@ -95,6 +109,13 @@ export default function ExploreView({
         <ExploreRadarCard gpsData={gpsData} />
 
       </div>
+
+      {/* PropTech Financial & Land Tools Interactive Modal */}
+      <FinancialToolsModal
+        isOpen={isToolsModalOpen}
+        onClose={() => setIsToolsModalOpen(false)}
+        initialTool={toolsModalTab}
+      />
     </main>
   );
 }

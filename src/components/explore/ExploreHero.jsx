@@ -3,7 +3,8 @@ import { HERO_CONTENT } from "../../config/siteContent";
 
 export default function ExploreHero({
   onPostProperty,
-  onOpenChecklistModal
+  onOpenChecklistModal,
+  onOpenToolsModal
 }) {
   return (
     <section className="px-margin-mobile pt-2 pb-2">
@@ -52,6 +53,78 @@ export default function ExploreHero({
             <span className="material-symbols-outlined text-[16px] text-secondary">fact_check</span>
             <span>Legal Checklist</span>
           </button>
+        </div>
+
+        {/* Quick PropTech Tools & Calculators Action Bar */}
+        <div className="pt-2 border-t border-surface-container/60 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-[11px] font-code-spec">
+            <span className="flex items-center gap-1 font-bold text-primary uppercase text-[10px] tracking-wider">
+              <span className="material-symbols-outlined text-[14px] text-secondary">calculate</span>
+              PropTech Smart Tools
+            </span>
+            <span className="text-[10px] text-secondary font-bold">100% Free • Direct C2C</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            <button
+              type="button"
+              onClick={() => onOpenToolsModal ? onOpenToolsModal('emi') : null}
+              className="p-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container transition flex items-center gap-1.5 text-left border border-surface-container active:scale-95 shadow-2xs"
+            >
+              <div className="w-6 h-6 rounded-lg bg-primary-container text-secondary-container flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[14px]">calculate</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block font-label-md text-[11px] font-bold text-primary truncate leading-tight">Loan EMI</span>
+                <span className="block font-code-spec text-[9px] text-secondary font-semibold truncate">8.5% Rate</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenToolsModal ? onOpenToolsModal('land') : null}
+              className="p-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container transition flex items-center gap-1.5 text-left border border-surface-container active:scale-95 shadow-2xs"
+            >
+              <div className="w-6 h-6 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[14px]">square_foot</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block font-label-md text-[11px] font-bold text-primary truncate leading-tight">Gaj / Bigha</span>
+                <span className="block font-code-spec text-[9px] text-secondary font-semibold truncate">Land Unit</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("price-trends-section");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="p-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container transition flex items-center gap-1.5 text-left border border-surface-container active:scale-95 shadow-2xs"
+            >
+              <div className="w-6 h-6 rounded-lg bg-secondary-container text-on-secondary-fixed flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[14px]">trending_up</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block font-label-md text-[11px] font-bold text-primary truncate leading-tight">Price Index</span>
+                <span className="block font-code-spec text-[9px] text-secondary font-semibold truncate">+10% QoQ</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenChecklistModal}
+              className="p-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container transition flex items-center gap-1.5 text-left border border-surface-container active:scale-95 shadow-2xs"
+            >
+              <div className="w-6 h-6 rounded-lg bg-surface-container-high text-primary flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[14px]">verified</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block font-label-md text-[11px] font-bold text-primary truncate leading-tight">7-Step Legal</span>
+                <span className="block font-code-spec text-[9px] text-on-surface-variant truncate">Deed Check</span>
+              </div>
+            </button>
+          </div>
         </div>
 
       </div>

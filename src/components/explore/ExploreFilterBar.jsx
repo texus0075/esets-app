@@ -12,6 +12,8 @@ export default function ExploreFilterBar({
   onDealIntentChange,
   bhkFilter,
   onBhkFilterChange,
+  budgetFilter = "All",
+  onBudgetFilterChange,
   gpsData,
   isLocatingGps,
   onDetectGPS,
@@ -187,6 +189,27 @@ export default function ExploreFilterBar({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 3. Budget Range Filter Row (RightHome PropTech Feature) */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pt-1 border-t border-surface-container/60">
+          <span className="text-[10px] font-code-spec text-on-surface-variant shrink-0 mr-0.5 uppercase font-bold">
+            Budget:
+          </span>
+          {["All", "< ₹50L", "₹50L - ₹1.5Cr", "₹1.5Cr - ₹3Cr", "₹3Cr+"].map(budget => (
+            <button
+              key={budget}
+              type="button"
+              onClick={() => onBudgetFilterChange && onBudgetFilterChange(budget)}
+              className={`shrink-0 px-2 py-0.5 rounded-md font-code-spec text-[10.5px] transition ${
+                budgetFilter === budget 
+                  ? "bg-secondary-container text-on-secondary-fixed font-bold shadow-2xs" 
+                  : "bg-surface-container text-on-surface-variant font-medium hover:bg-surface-container-high"
+              }`}
+            >
+              {budget}
+            </button>
+          ))}
         </div>
       </div>
     </section>

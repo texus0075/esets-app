@@ -1,5 +1,5 @@
 // Esets Real Estate Service Worker - Auto-Eviction & Live Sync
-const CACHE_NAME = "esets-v3.6-live";
+const CACHE_NAME = "esets-v3.7-live";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",

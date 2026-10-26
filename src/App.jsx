@@ -122,6 +122,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [dealIntent, setDealIntent] = useState("All"); // 'All' | 'Buy' | 'Rent'
   const [bhkFilter, setBhkFilter] = useState("All");
+  const [budgetFilter, setBudgetFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Modals State
@@ -249,6 +250,7 @@ export default function App() {
     setSelectedDistrict("");
     setDealIntent("All");
     setBhkFilter("All");
+    setBudgetFilter("All");
     setSearchQuery("");
   };
 
@@ -288,7 +290,16 @@ export default function App() {
         if (bhkFilter === "4+ BHK" && item.bhk < 4) return false;
       }
 
-      // 5. Comprehensive Real-Time Search Query Matching
+      // 5. Budget Range Filter (RightHome PropTech Integration)
+      if (budgetFilter !== "All") {
+        const pVal = Number(item.price) || 0;
+        if (budgetFilter === "< ₹50L" && pVal >= 5000000) return false;
+        if (budgetFilter === "₹50L - ₹1.5Cr" && (pVal < 5000000 || pVal > 15000000)) return false;
+        if (budgetFilter === "₹1.5Cr - ₹3Cr" && (pVal < 15000000 || pVal > 30000000)) return false;
+        if (budgetFilter === "₹3Cr+" && pVal <= 30000000) return false;
+      }
+
+      // 6. Comprehensive Real-Time Search Query Matching
       if (searchQuery.trim() !== "") {
         const q = searchQuery.toLowerCase().trim();
         const matchesTitle = item.title?.toLowerCase().includes(q);
@@ -311,7 +322,7 @@ export default function App() {
 
       return true;
     });
-  }, [properties, activeCategory, selectedDistrict, dealIntent, bhkFilter, searchQuery]);
+  }, [properties, activeCategory, selectedDistrict, dealIntent, bhkFilter, budgetFilter, searchQuery]);
 
   const savedProperties = useMemo(() => {
     return properties.filter(p => savedIds.includes(p.id));
@@ -378,6 +389,8 @@ export default function App() {
           onDealIntentChange={setDealIntent}
           bhkFilter={bhkFilter}
           onBhkFilterChange={setBhkFilter}
+          budgetFilter={budgetFilter}
+          onBudgetFilterChange={setBudgetFilter}
           onResetFilters={handleResetFilters}
           gpsData={gpsData}
           isLocatingGps={isLocatingGps}
