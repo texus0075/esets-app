@@ -115,7 +115,9 @@ export default function PropertyCard({
         <div className="grid grid-cols-3 gap-1.5 py-2 px-2.5 rounded-lg bg-surface-container-low text-center">
           <div className="flex flex-col">
             <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Super Area</span>
-            <span className="font-code-spec text-code-spec text-on-surface font-semibold">{property.area} sq.ft</span>
+            <span className="font-code-spec text-[11px] text-on-surface font-semibold truncate">
+              {property.area} sqft {property.area ? `(${Math.round(property.area / 9)} गज)` : ''}
+            </span>
           </div>
           <div className="flex flex-col">
             <span className="font-code-spec text-[10px] text-on-surface-variant uppercase">Layout</span>

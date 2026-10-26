@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import StampLogo from "./StampLogo";
 import { resolvePropertyLandmarks } from "../services/landmarkRadarService";
+import HomeLoanEMICalculator from "./HomeLoanEMICalculator";
 
 export default function PropertyFolioModal({ 
   property, 
@@ -292,7 +293,7 @@ export default function PropertyFolioModal({
                     {property.area} sq.ft
                   </span>
                   <p className="font-code-spec text-[11px] text-on-surface-variant mt-0.5">
-                    Carpet: {property.carpetArea || Math.round(property.area * 0.82)} sq.ft
+                    Carpet: {property.carpetArea || Math.round(property.area * 0.82)} sq.ft • ≈ {Math.round(property.area / 9)} गज (Gaj)
                   </p>
                 </div>
               </div>
@@ -346,6 +347,13 @@ export default function PropertyFolioModal({
               </div>
             </div>
           </section>
+
+                    {/* Home Loan EMI Estimator (Blueprint Feature) */}
+          {property.dealType !== "Rent" && (
+            <section className="px-margin-mobile py-2">
+              <HomeLoanEMICalculator propertyPrice={property.price} />
+            </section>
+          )}
 
           {/* Mandatory Google Maps Satellite View Embed - WITH ZERO TOUCH TRAPPING */}
           <section className="px-margin-mobile py-3">

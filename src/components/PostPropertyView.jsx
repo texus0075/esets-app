@@ -16,6 +16,7 @@ import {
   analyzeLandmarksWithGemini, 
   generateLocalBaselineLandmarks 
 } from "../services/landmarkRadarService";
+import { formatIndianPriceToWords, calculateBrokerageSavings } from "../services/indianRealEstateCalculatorService";
 import { 
   compressImageFile, 
   detectRoomTypeWithAI, 
@@ -607,6 +608,15 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                   </div>
                 </div>
 
+                                {priceNum && (
+                  <div className="flex items-center justify-between text-[11.5px] px-1 text-on-surface-variant font-medium mt-1">
+                    <span className="text-secondary font-bold">
+                      {formatIndianPriceToWords(priceUnit === "Cr" ? parseFloat(priceNum) * 10000000 : parseFloat(priceNum) * 100000)}
+                    </span>
+                    <span>{calculateBrokerageSavings(priceUnit === "Cr" ? parseFloat(priceNum) * 10000000 : parseFloat(priceNum) * 100000)}</span>
+                  </div>
+                )}
+
                 <div className="bg-tertiary-fixed/30 p-2.5 rounded-lg flex items-center justify-between mt-1">
                   <div className="flex items-center gap-1.5 text-on-tertiary-fixed">
                     <span className="material-symbols-outlined text-[16px]">insights</span>
@@ -631,6 +641,11 @@ export default function PostPropertyView({ onBack, onAddProperty }) {
                     />
                     <span className="absolute right-3 top-2.5 font-code-spec text-[11px] text-on-surface-variant">sq.ft</span>
                   </div>
+                  {superArea && (
+                    <span className="text-[10px] text-on-surface-variant font-code-spec px-1">
+                      ≈ {(Number(superArea) / 9).toFixed(1)} Gaj (गज)
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="font-label-md text-label-md text-on-surface-variant uppercase">Configuration</label>

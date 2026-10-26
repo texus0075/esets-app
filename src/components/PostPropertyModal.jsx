@@ -12,6 +12,7 @@ import {
   Building2
 } from "lucide-react";
 import { LOCATIONS } from "../data/locations";
+import { formatIndianPriceToWords } from "../services/indianRealEstateCalculatorService";
 import { useAuth } from "../context/AuthContext";
 
 export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
@@ -218,6 +219,11 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-bold"
               />
+              {price && (
+                <p className="text-[11px] text-emerald-800 font-bold mt-1">
+                  {formatIndianPriceToWords(price)} • 0% ब्रोकरेज
+                </p>
+              )}
             </div>
 
             <div>
@@ -231,6 +237,11 @@ export default function PostPropertyModal({ isOpen, onClose, onAddProperty }) {
                 onChange={(e) => setArea(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
+              {area && (
+                <p className="text-[11px] text-slate-500 font-mono mt-1">
+                  ≈ {(Number(area) / 9).toFixed(1)} गज (Gaj)
+                </p>
+              )}
             </div>
           </div>
 
