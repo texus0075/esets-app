@@ -125,9 +125,15 @@ export default function App() {
   const [budgetFilter, setBudgetFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modals State
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
+  // Auto-close detail modal if property is deleted remotely by owner
+  useEffect(() => {
+    if (selectedProperty) {
+      const stillExists = properties.some(p => p.id === selectedProperty.id);
+      if (!stillExists) {
+        setSelectedProperty(null);
+      }
+    }
+  }, [properties, selectedProperty]);
 
   // Hardware GPS Hook with Real-time Reverse Geocoding
   const { gpsData, isLocating: isLocatingGps, detectLocation } = useGeolocation();
@@ -157,9 +163,6 @@ export default function App() {
     localStorage.setItem("esets_saved_locations", JSON.stringify(savedLocations));
   }, [savedLocations]);
 
-  useEffect(() => {
-    localStorage.setItem("esets_custom_properties", JSON.stringify(properties));
-  }, [properties]);
 
   // Location Management Handlers
   const handleSaveLocation = (newLoc) => {
@@ -204,14 +207,19 @@ export default function App() {
   };
 
   const handleDeleteProperty = async (propertyId) => {
-    // Optimistic UI update
-    setProperties(prev => prev.filter(p => p.id !== propertyId));
-    setMyPropertyIds(prev => prev.filter(id => id !== propertyId));
-    setSavedIds(prev => prev.filter(id => id !== propertyId));
-    if (selectedProperty && selectedProperty.id === propertyId) {
-      setSelectedProperty(null);
+    try {
+      // Optimistic UI update
+      setProperties(prev => prev.filter(p => p.id !== propertyId));
+      setMyPropertyIds(prev => prev.filter(id => id !== propertyId));
+      setSavedIds(prev => prev.filter(id => id !== propertyId));
+      if (selectedProperty && selectedProperty.id === propertyId) {
+        setSelectedProperty(null);
+      }
+      await deleteProperty(propertyId);
+    } catch (err) {
+      console.error("Delete property error:", err);
+      alert("प्रॉपर्टी डिलीट करने में समस्या आई: " + (err.message || "कृपया पुनः प्रयास करें।"));
     }
-    await deleteProperty(propertyId);
   };
 
   const handleToggleGlobalCallShield = () => {
