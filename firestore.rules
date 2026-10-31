@@ -137,6 +137,7 @@ service cloud.firestore {
              (!('landmarks' in data) || data.landmarks == null || (data.landmarks is list && data.landmarks.size() <= 50)) &&
              (!('views' in data) || data.views is number) &&
              (!('isSold' in data) || data.isSold is bool) &&
+             (!('isFeatured' in data) || data.isFeatured is bool) &&
              (!('verifiedOwner' in data) || data.verifiedOwner is bool) &&
              (!('has360' in data) || data.has360 is bool) &&
              (!('createdAt' in data) || data.createdAt is string || data.createdAt is timestamp || data.createdAt == request.time) &&

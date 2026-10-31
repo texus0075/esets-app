@@ -8,7 +8,8 @@ export default function MyListingsView({
   onToggleSold,
   onDeleteProperty,
   onNavigateToPost,
-  isGlobalCallShieldActive
+  isGlobalCallShieldActive,
+  onOpenBoostModal
 }) {
   const activeCount = myProperties.filter(p => !p.isSold && !isGlobalCallShieldActive).length;
   const soldCount = myProperties.filter(p => p.isSold || isGlobalCallShieldActive).length;
@@ -23,6 +24,31 @@ export default function MyListingsView({
     });
     return () => unsub();
   }, [currentUser]);
+
+  const handleExportCSV = () => {
+    if (!inquiries.length) {
+      alert("एक्सपोर्ट करने के लिए अभी कोई इंक्वायरी उपलब्ध नहीं है।");
+      return;
+    }
+    const headers = ["Buyer Name", "Buyer Phone", "Property Title", "Visit Date", "Visit Time", "Status", "Date Requested"];
+    const rows = inquiries.map(inq => [
+      `"${inq.buyerName || ''}"`,
+      `"${inq.buyerPhone || ''}"`,
+      `"${inq.propertyTitle || ''}"`,
+      `"${inq.visitDate || ''}"`,
+      `"${inq.visitTime || ''}"`,
+      `"${inq.status || 'new'}"`,
+      `"${inq.createdAt || ''}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `esets_buyer_leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <main className="flex-1 w-full bg-surface pt-16 pb-24 min-w-0 max-w-2xl mx-auto px-margin-mobile">
@@ -122,6 +148,14 @@ export default function MyListingsView({
               <span className="font-code-spec text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">
                 Direct Buyer Site-Visit Requests ({inquiries.length})
               </span>
+              <button
+                onClick={handleExportCSV}
+                disabled={inquiries.length === 0}
+                className="flex items-center gap-1 text-[11px] font-bold text-secondary hover:text-primary transition disabled:opacity-40"
+              >
+                <span className="material-symbols-outlined text-[15px]">download</span>
+                <span>Export CSV</span>
+              </button>
             </div>
 
             {inquiries.length === 0 ? (
@@ -262,6 +296,21 @@ export default function MyListingsView({
 
                 {/* Bottom Row: Actions Bar */}
                 <div className="pt-2 border-t border-surface-container flex items-center justify-between gap-2">
+                  {/* Boost / Spotlight Button */}
+                  <button
+                    onClick={() => onOpenBoostModal && onOpenBoostModal(property)}
+                    className={`px-3 py-2 rounded-xl font-label-md text-[12px] font-bold transition flex items-center gap-1.5 shadow-xs ${
+                      property.isFeatured
+                        ? "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300"
+                        : "bg-amber-500 hover:bg-amber-600 text-white"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {property.isFeatured ? "stars" : "bolt"}
+                    </span>
+                    <span>{property.isFeatured ? "Featured" : "Boost"}</span>
+                  </button>
+
                   {/* Toggle Sold / Active Button */}
                   <button
                     onClick={() => onToggleSold(property.id, property.isSold)}

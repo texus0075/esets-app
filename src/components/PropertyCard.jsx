@@ -7,6 +7,7 @@ export default function PropertyCard({
   isGlobalCallShieldActive = false
 }) {
   const isSold = property.isSold || isGlobalCallShieldActive;
+  const isFeatured = !!property.isFeatured;
   const mainImage = property.images && property.images.length > 0 ? property.images[0] : "";
 
   // RightHome Financial Intelligence: 80% Loan EMI & 2% Brokerage Savings
@@ -23,6 +24,10 @@ export default function PropertyCard({
     <article 
       onClick={() => onSelectProperty(property)}
       className={`flex flex-col rounded-xl bg-surface-container-lowest overflow-hidden shadow-sm cursor-pointer transition-all hover:shadow-md ${
+        isFeatured 
+          ? "ring-2 ring-amber-400 shadow-md shadow-amber-500/10 relative" 
+          : ""
+      } ${
         isSold ? "opacity-90" : ""
       }`}
     >
@@ -68,7 +73,13 @@ export default function PropertyCard({
         ) : (
           <>
             {/* Top Floating Chips */}
-            <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+            <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap max-w-[70%]">
+              {isFeatured && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white font-code-spec text-[10.5px] font-bold shadow-xs">
+                  <span className="material-symbols-outlined text-[13px]">stars</span>
+                  FEATURED
+                </span>
+              )}
               {property.verifiedOwner && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-code-spec text-[11px] font-semibold">
                   <span className="material-symbols-outlined text-[13px]">verified</span>

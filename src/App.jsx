@@ -23,6 +23,7 @@ import PropertyFolioModal from "./components/PropertyFolioModal";
 import LocationModal from "./components/LocationModal";
 import LegalChecklistModal from "./components/LegalChecklistModal";
 import AuthModal from "./components/AuthModal";
+import BoostListingModal from "./components/BoostListingModal";
 
 // Initial Listing Data
 import { INITIAL_PROPERTIES, DISTRICTS } from "./data/mockData";
@@ -33,6 +34,7 @@ import {
   createProperty, 
   toggleSoldStatus, 
   deleteProperty, 
+  boostPropertyListing,
   getCachedProperties 
 } from "./services/propertyService";
 
@@ -124,6 +126,7 @@ export default function App() {
   const [bhkFilter, setBhkFilter] = useState("All");
   const [budgetFilter, setBudgetFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [boostingProperty, setBoostingProperty] = useState(null);
 
   // Auto-close detail modal if property is deleted remotely by owner
   useEffect(() => {
@@ -219,6 +222,22 @@ export default function App() {
     } catch (err) {
       console.error("Delete property error:", err);
       alert("प्रॉपर्टी डिलीट करने में समस्या आई: " + (err.message || "कृपया पुनः प्रयास करें।"));
+    }
+  };
+
+  const handleActivateBoost = async (propertyId, planType) => {
+    try {
+      // Optimistic UI update
+      setProperties(prev => prev.map(p => {
+        if (p.id === propertyId) {
+          return { ...p, isFeatured: true, verifiedOwner: true };
+        }
+        return p;
+      }));
+      await boostPropertyListing(propertyId, planType);
+    } catch (err) {
+      console.error("Boost error:", err);
+      throw err;
     }
   };
 
@@ -329,6 +348,11 @@ export default function App() {
       }
 
       return true;
+    }).sort((a, b) => {
+      // Spotlight Monetization Engine: Pin featured properties to top of results
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      return 0;
     });
   }, [properties, activeCategory, selectedDistrict, dealIntent, bhkFilter, budgetFilter, searchQuery]);
 
@@ -416,6 +440,7 @@ export default function App() {
           onSelectProperty={setSelectedProperty}
           onToggleSold={handleToggleSold}
           onDeleteProperty={handleDeleteProperty}
+          onOpenBoostModal={(prop) => setBoostingProperty(prop)}
           onNavigateToPost={() => setActiveTab("post-free")}
           isGlobalCallShieldActive={isGlobalCallShieldActive}
         />
@@ -489,6 +514,14 @@ export default function App() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={closeAuthModal}
+      />
+
+      {/* Spotlight & Featured Listing Boost Modal (Stripe Monetization Engine) */}
+      <BoostListingModal
+        isOpen={!!boostingProperty}
+        onClose={() => setBoostingProperty(null)}
+        property={boostingProperty}
+        onActivateBoost={handleActivateBoost}
       />
     </div>
   );

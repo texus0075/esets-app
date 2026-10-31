@@ -191,6 +191,36 @@ export const toggleSoldStatus = async (propertyId, currentStatus) => {
   return updated;
 };
 
+// Boost property listing to Spotlight Featured (Monetization Engine)
+export const boostPropertyListing = async (propertyId, planType = "spotlight") => {
+  const updates = {
+    isFeatured: true,
+    verifiedOwner: true
+  };
+
+  try {
+    if (!propertyId.startsWith("local-") && !propertyId.startsWith("prop-")) {
+      const docRef = doc(db, COLLECTION_NAME, propertyId);
+      await updateDoc(docRef, updates);
+      console.log("Successfully boosted property on Cloud Firestore:", propertyId);
+    }
+  } catch (error) {
+    console.error("Firestore boost error:", error);
+    throw error;
+  }
+
+  // Update local cache
+  const cached = getCachedProperties();
+  const updated = cached.map(p => {
+    if (p.id === propertyId) {
+      return { ...p, ...updates };
+    }
+    return p;
+  });
+  saveCachedProperties(updated);
+  return updated;
+};
+
 // Delete property listing
 export const deleteProperty = async (propertyId) => {
   markPropertyDeletedLocally(propertyId);
