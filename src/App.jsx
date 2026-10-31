@@ -128,6 +128,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [boostingProperty, setBoostingProperty] = useState(null);
 
+  // Modals State
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
+
   // Auto-close detail modal if property is deleted remotely by owner
   useEffect(() => {
     if (selectedProperty) {
